@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      // Verificar custom claim (más eficiente) O el campo rol en el documento del usuario
+      return request.auth != null && (
+        request.auth.token.rol == 'admin' || 
+        request.auth.token.Rol == 'admin' ||
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin' ||
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.Rol == 'admin'
+      );
+    }
+
+    match /usuarios/{userId} {
+      allow create: if request.auth != null && (
+        // ✅ Seguridad: Clientes nuevos siempre NACEN desactivados (activo: false)
+        (request.auth.uid == userId && request.resource.data.rol == 'cliente' && request.resource.data.activo == false) || 
+        isAdmin()
+      ); 
+      allow read: if request.auth != null;
+      // ✅ Seguridad: Solo admin puede activar cuentas o cambiar roles
+      allow update: if request.auth != null && (
+        isAdmin() || 
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rol', 'Rol', 'activo', 'email']))
+      );
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    match /trabajos/{jobId} {
+      allow create: if request.auth != null && (
+                      // Cliente crea su propio pedido
+                      (request.resource.data.clienteId == request.auth.uid && request.resource.data.estado == 'Solicitado') ||
+                      // Admin crea pedido en nombre de un cliente
+                      isAdmin()
+                    );
+                    
+      allow read: if request.auth != null && (
+        isAdmin() || 
+        resource.data.clienteId == request.auth.uid || 
+        resource.data.operarioId == request.auth.uid
+      );
+      
+      allow update: if request.auth != null && (
+        isAdmin() ||
+        // Operarios solo pueden cambiar el estado a 'completado'
+        (resource.data.operarioId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']) && request.resource.data.estado == 'completado')
+      );
+      
+      allow delete: if request.auth != null && isAdmin();
+    }
+  }
+}

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro de Comando | ServiIntel SAS</title>
+    <link rel="stylesheet" href="styles.css?v=1.1">
+    <link rel="icon" href="logo.png?v=1" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <!-- ================= 1. LOGIN / REGISTRO ================= -->
+    <div id="view-auth" class="view active">
+        <div class="auth-card">
+            <h1 class="logo-auth"><img src="logo.png?v=1" alt="Logo"> SERVI<span>INTEL</span></h1>
+            <p id="auth-subtitle"
+                style="color: var(--text-muted); font-size: 14px; margin-bottom: 32px; font-weight: 500;">Acceso
+                Administrativo Especial</p>
+
+            <div id="form-login">
+                <input id="logEmail" type="email" placeholder="Correo electrónico" class="input-premium">
+                <input id="logPass" type="password" placeholder="Contraseña" class="input-premium">
+                <button onclick="login()" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> INGRESAR</button>
+                <p style="margin-top: 24px; font-size: 13px; color: var(--text-muted);">
+                    ¿Cliente Nuevo? <span onclick="toggleAuth()"
+                        style="color: var(--primary); cursor: pointer; font-weight: 600;">Solicitar acceso</span>
+                </p>
+            </div>
+
+            <div id="form-registro" class="oculto">
+                <input id="regNombre" type="text" placeholder="Empresa / Razón Social" class="input-premium">
+                <input id="regContacto" type="text" placeholder="Nombre completo de contacto" class="input-premium">
+                <input id="regTelefono" type="tel" placeholder="Teléfono de celular/oficina" class="input-premium">
+                <input id="regDireccion" type="text" placeholder="Dirección del domicilio de servicio"
+                    class="input-premium">
+                <input id="regEmail" type="email" placeholder="Correo electrónico corporativo" class="input-premium">
+                <input id="regPass" type="password" placeholder="Crear contraseña" class="input-premium">
+                <button onclick="registrarCliente()" class="btn btn-secondary"><i class="fas fa-crown"></i> REGISTRO
+                </button>
+                <p style="margin-top: 24px; font-size: 13px; color: var(--text-muted);">
+                    <span onclick="toggleAuth()" style="color: var(--text-main); cursor: pointer; font-weight: 600;"><i
+                            class="fas fa-arrow-left"></i> Volver al Login</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 2. PANEL ADMINISTRADOR ================= -->
+    <div id="view-admin" class="view">
+        <div class="dashboard-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="adminSidebar">
+                <div class="sidebar-header">
+                    <img src="logo.png?v=1" alt="Logo" class="brand-logo">
+                    SERVI<span>INTEL</span>
+                    <span class="pro-badge">ADMIN</span>
+                </div>
+
+                <nav class="nav-links">
+                    <button onclick="cambiarPestana('trabajos')" id="nav-trabajos" class="nav-btn activo"><i
+                            class="fas fa-chart-line"></i> Tablero General</button>
+                    <button onclick="cambiarPestana('clientes')" id="nav-clientes" class="nav-btn"><i
+                            class="fas fa-building"></i> Directorio Clientes</button>
+                    <button onclick="cambiarPestana('equipo')" id="nav-equipo" class="nav-btn"><i
+                            class="fas fa-users-cog"></i> Fuerza Operativa</button>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <button onclick="logout()" class="btn btn-outline" style="width: 100%;"><i
+                            class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <!-- Topbar -->
+                <header class="topbar">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <button class="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                        <h2 class="topbar-title">Centro de Control</h2>
+                    </div>
+
+                    <button onclick="cargarDatosBase()" id="btnSync" class="btn btn-warning btn-small">
+                        <i class="fas fa-sync-alt"></i> <span>Sincronizar Datos</span>
+                    </button>
+                </header>
+
+                <div class="page-content">
+                    <!-- PESTAÑA: TABLERO (TRABAJOS) -->
+                    <section id="tab-trabajos" class="pestana active tarjeta"
+                        style="border-top: 3px solid var(--primary);">
+                        <div class="titulo-seccion">
+                            <div>
+                                <i class="fas fa-tasks" style="color: var(--primary); margin-right: 8px;"></i>
+                                Operaciones en Curso
+                            </div>
+                            <select id="filtroAdmin" onchange="filtrarTrabajosPorEstado()" class="input-premium"
+                                style="width: auto; margin: 0; padding: 8px 16px; font-weight: 600; background: var(--bg-app); border: none;">
+                                <option value="todos">Todos los Estados</option>
+                                <option value="solicitado">🔴 Solicitudes Nuevas</option>
+                                <option value="asignado">🟡 Técnicos Asignados</option>
+                                <option value="completado">🟢 Operaciones Terminadas</option>
+                            </select>
+                        </div>
+
+                        <!-- Barra de búsqueda de trabajos -->
+                        <div
+                            style="display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 220px; position: relative;">
+                                <i class="fas fa-search"
+                                    style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px;"></i>
+                                <input id="buscadorTrabajos" type="text" placeholder="Buscar por nombre de cliente..."
+                                    oninput="buscarTrabajosServidor(this.value)" class="input-premium"
+                                    style="margin: 0; padding-left: 38px; font-size: 13px;">
+                            </div>
+                            <span id="trabajos-contador"
+                                style="font-size: 12px; color: var(--text-muted); white-space: nowrap;"></span>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="tabla-moderna">
+                                <thead>
+                                    <tr>
+                                        <th>Estado</th>
+                                        <th>Cliente / Empresa</th>
+                                        <th>Requerimiento (Cat)</th>
+                                        <th>Técnico Responsable</th>
+                                        <th style="text-align: center;">Info</th>
+                                        <th style="text-align: center;">Gestión</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-admin-trabajos"></tbody>
+                            </table>
+                        </div>
+                        <div style="text-align: center; margin-top: 16px;">
+                            <button id="btnCargarMas" onclick="cargarMasTrabajos()" class="btn btn-outline btn-small"
+                                style="display:none;">
+                                <i class="fas fa-chevron-down"></i> Cargar más trabajos
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- PESTAÑA: CLIENTES -->
+                    <section id="tab-clientes" class="pestana tarjeta" style="border-top: 3px solid var(--secondary);">
+                        <div class="titulo-seccion">
+                            <div><i class="fas fa-building" style="color: var(--secondary); margin-right: 8px;"></i>
+                                Base de Datos Clientes</div>
+                            <button onclick="document.getElementById('modal-nuevo-cliente').classList.remove('oculto')"
+                                class="btn btn-secondary btn-small">
+                                <i class="fas fa-plus"></i> Nuevo Cliente
+                            </button>
+                        </div>
+                        <div style="position: relative; margin-bottom: 16px;">
+                            <i class="fas fa-search"
+                                style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px;"></i>
+                            <input id="buscadorClientes" type="text" placeholder="Buscar cliente por nombre..."
+                                oninput="buscarClientesServidor(this.value)" class="input-premium"
+                                style="margin: 0; padding-left: 38px; font-size: 13px;">
+                        </div>
+                        <div class="table-container">
+                            <table class="tabla-moderna">
+                                <thead>
+                                    <tr>
+                                        <th>Empresa / Cliente</th>
+                                        <th>Contacto Principal</th>
+                                        <th style="text-align: center;">Servicios</th>
+                                        <th style="text-align: center;">Info</th>
+                                        <th style="text-align: center;">Gestión</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-admin-clientes"></tbody>
+                            </table>
+                        </div>
+                        <div style="text-align: center; margin-top: 16px;">
+                            <button id="btnCargarMasClientes" onclick="cargarMasClientes()"
+                                class="btn btn-outline btn-small" style="display:none;">
+                                <i class="fas fa-chevron-down"></i> Cargar más clientes
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- PESTAÑA: EQUIPO -->
+                    <section id="tab-equipo" class="pestana tarjeta" style="border-top: 3px solid var(--warning);">
+                        <div class="titulo-seccion">
+                            <div><i class="fas fa-tools" style="color: var(--warning); margin-right: 8px;"></i>
+                                Plantilla Operativa</div>
+                            <button onclick="document.getElementById('modal-nuevo-op').classList.remove('oculto')"
+                                class="btn btn-primary btn-small">
+                                <i class="fas fa-plus"></i> Añadir Técnico
+                            </button>
+                        </div>
+                        <div style="position: relative; margin-bottom: 16px;">
+                            <i class="fas fa-search"
+                                style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px;"></i>
+                            <input id="buscadorEquipo" type="text" placeholder="Buscar técnico por nombre..."
+                                oninput="buscarEquipoServidor(this.value)" class="input-premium"
+                                style="margin: 0; padding-left: 38px; font-size: 13px;">
+                        </div>
+                        <div class="table-container">
+                            <table class="tabla-moderna">
+                                <thead>
+                                    <tr>
+                                        <th>Técnico / Operario</th>
+                                        <th>Certificación</th>
+                                        <th style="text-align: center;">Info</th>
+                                        <th style="text-align: center;">Gestión</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-admin-equipo"></tbody>
+                            </table>
+                        </div>
+                        <div style="text-align: center; margin-top: 16px;">
+                            <button id="btnCargarMasEquipo" onclick="cargarMasEquipo()"
+                                class="btn btn-outline btn-small" style="display:none;">
+                                <i class="fas fa-chevron-down"></i> Cargar más operarios
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ================= 3. PANEL CLIENTE ================= -->
+    <div id="panel-cliente" class="oculto" style="height: 100vh; display: flex; flex-direction: column;">
+        <header class="header-cliente">
+            <h1 class="logo-auth" style="margin: 0; font-size: 22px;"><img src="logo.png?v=1" alt="Logo"
+                    class="header-logo"> SERVI<span style="color: var(--warning);">INTEL</span></h1>
+            <div style="display: flex; gap: 16px; align-items: center;">
+                <span style="font-weight: 500; font-size: 14px; opacity: 0.9;" id="cliente-nombre-display">Portal
+                    del Cliente</span>
+                <button onclick="logout()" class="btn-salir"><i class="fas fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <main class="contenedor page-content">
+            <div class="grid-2">
+                <div class="tarjeta" style="border-top: 3px solid var(--secondary);">
+                    <div class="titulo-seccion"><i class="fas fa-headset"
+                            style="color: var(--secondary); margin-right: 8px;"></i> Solicitar Intervención</div>
+                    <label
+                        style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; letter-spacing: 0.5px;">ÁREA
+                        TÉCNICA</label>
+                    <select id="cliServicio" class="input-premium">
+                        <option value="">Seleccione el tipo de falla...</option>
+                        <option value="Electricidad">⚡ Redes Eléctricas y Tableros</option>
+                        <option value="Climatizacion">❄️ Climatización y AA</option>
+                        <option value="Plomeria">🚰 Fontanería y Red Hidráulica</option>
+                    </select>
+
+                    <label
+                        style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 16px; letter-spacing: 0.5px;">DIAGNÓSTICO
+                        INICIAL</label>
+                    <textarea id="cliDesc"
+                        placeholder="Describa el problema con el mayor detalle posible para enviar al especialista adecuado..."
+                        class="input-premium" style="height: 140px; resize: vertical;"></textarea>
+
+                    <button onclick="enviarPedido()" class="btn btn-secondary"
+                        style="margin-top: 10px; font-size: 14px;"><i class="fas fa-paper-plane"></i> ENVIAR AL
+                        DESPACHO</button>
+                </div>
+
+                <div class="tarjeta" style="border-top: 3px solid var(--primary);">
+                    <div class="titulo-seccion"><i class="fas fa-history"
+                            style="color: var(--primary); margin-right: 8px;"></i> Historial de Requerimientos</div>
+                    <div id="lista-cli-pedidos" style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
+                        <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">Cargando
+                            historial...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= 4. PANEL OPERARIO (TÉCNICO) ================= -->
+    <div id="view-operario" class="view">
+        <header class="header-cliente" style="background: var(--bg-sidebar);">
+            <h1 class="logo-auth" style="color: white !important; margin: 0; font-size: 22px; letter-spacing: -1px;">
+                <img src="logo.png?v=1" alt="Logo" class="header-logo" style="filter: brightness(0) invert(1);">
+                SERVI<span style="color: var(--warning);">INTEL</span> <span
+                    style="font-size: 13px; font-weight: normal; color: #cbd5e1; margin-left: 8px;">| Operativo</span>
+            </h1>
+            <div style="display: flex; gap: 16px; align-items: center; color: white;">
+                <span style="font-weight: 500; font-size: 14px; opacity: 0.9;" id="op-nombre-display">Técnico</span>
+                <button onclick="logout()" class="btn-salir"
+                    style="border-color: rgba(255,255,255,0.2); color: white;"><i class="fas fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <main class="contenedor page-content">
+            <div class="tarjeta" style="border-top: 3px solid var(--warning);">
+                <div class="titulo-seccion"><i class="fas fa-hammer"
+                        style="color: var(--warning); margin-right: 8px;"></i> Trabajos Asignados a mi Cargo</div>
+                <div id="lista-op-pedidos" style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">Cargando tus tareas
+                        asignadas...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= MODAL OPERARIO ================= -->
+    <div id="modal-nuevo-op" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2
+                style="margin-bottom: 24px; font-size: 20px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px;">
+                <i class="fas fa-user-plus" style="color: var(--primary);"></i> Alta de Técnico
+            </h2>
+            <input id="opNom" type="text" placeholder="Nombre completo" class="input-premium">
+            <input id="opMail" type="email" placeholder="Correo electrónico corporativo" class="input-premium">
+            <input id="opPass" type="password" placeholder="Contraseña de acceso" class="input-premium">
+            <input id="opTel" type="tel" placeholder="Teléfono celular del técnico" class="input-premium">
+
+            <label
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">Fecha
+                de Inicio de Labores</label>
+            <input id="opContrato" type="date" class="input-premium">
+
+            <label
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">Competencia
+                / Certificación</label>
+            <select id="opCap" class="input-premium">
+                <option value="Certificado">Tiene Certificado Profesional</option>
+                <option value="Sin Certificado">No tiene Certificado</option>
+            </select>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="crearOperario()" class="btn btn-primary" id="btnCrearOp">COMISIONAR TÉCNICO</button>
+                <button onclick="document.getElementById('modal-nuevo-op').classList.add('oculto')"
+                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL DETALLE USUARIO E INFO ================= -->
+    <div id="modal-detalle-usuario" class="modal-overlay oculto">
+        <div class="modal-content" style="max-width: 500px;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 20px; font-weight: 700; color: var(--text-main); margin:0;" id="detalle-titulo">
+                    Perfil de Usuario</h2>
+                <button onclick="document.getElementById('modal-detalle-usuario').classList.add('oculto')"
+                    style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+
+            <div id="detalle-contenido" style="line-height: 1.6; font-size: 15px; color: var(--text-main);">
+                <!-- Dynamic Content Here -->
+            </div>
+
+            <div
+                style="display: flex; gap: 12px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <button id="btnEliminarUsuario" class="btn btn-primary" style="flex: 1; background: var(--danger);"><i
+                        class="fas fa-trash"></i> Eliminar</button>
+                <button id="btnEditarUsuario" class="btn btn-secondary" style="flex: 1;"><i class="fas fa-edit"></i>
+                    Editar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL EDICIÓN USUARIO ================= -->
+    <div id="modal-editar-usuario" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 24px; font-size: 20px; font-weight: 700;"><i class="fas fa-pen-square"></i> Editar
+                Perfil</h2>
+            <input type="hidden" id="editUid">
+            <input type="hidden" id="editRol">
+
+            <input id="editNombre" type="text" placeholder="Nombre / Empresa" class="input-premium">
+            <input id="editPass" type="password" placeholder="Nueva Contraseña (Opcional)" class="input-premium">
+            <input id="editTelefono" type="tel" placeholder="Teléfono" class="input-premium">
+
+            <div id="editExtraCliente" style="display: none;">
+                <input id="editContacto" type="text" placeholder="Persona de contacto" class="input-premium">
+                <input id="editDireccion" type="text" placeholder="Dirección del domicilio" class="input-premium">
+            </div>
+
+            <div id="editExtraOperario" style="display: none;">
+                <label
+                    style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">Certificación
+                    Profesional</label>
+                <select id="editCap" class="input-premium">
+                    <option value="Certificado">Tiene Certificado Profesional</option>
+                    <option value="Sin Certificado">No tiene Certificado</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="guardarEdicion()" class="btn btn-primary" id="btnGuardarEdit">GUARDAR CAMBIOS</button>
+                <button onclick="document.getElementById('modal-editar-usuario').classList.add('oculto')"
+                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL CALIFICAR TAREA ================= -->
+    <div id="modal-calificar" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 700;"><i class="fas fa-star"
+                    style="color: #fbbf24;"></i> Evaluación de Desempeño</h2>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Este requerimiento fue marcado
+                como completado. Registre la evaluación del cliente hacia el operativo y el tiempo de respuesta.</p>
+
+            <input type="hidden" id="califJobId">
+            <input type="hidden" id="califOpId">
+
+            <label
+                style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; display: block;">Calificación
+                del Cliente (1-5)</label>
+            <select id="califEstrellas" class="input-premium">
+                <option value="5">⭐⭐⭐⭐⭐ - Excelente/Rapido</option>
+                <option value="4">⭐⭐⭐⭐ - Bueno</option>
+                <option value="3">⭐⭐⭐ - Regular</option>
+                <option value="2">⭐⭐ - Deficiente</option>
+                <option value="1">⭐ - Inaceptable</option>
+            </select>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="guardarCalificacion()" class="btn btn-warning" id="btnGuardarCalif">ENVIAR
+                    EVALUACIÓN</button>
+                <button onclick="document.getElementById('modal-calificar').classList.add('oculto')"
+                    class="btn btn-outline" style="flex: 0.5;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL ASIGNAR TAREA ================= -->
+    <div id="modal-asignar" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2
+                style="margin-bottom: 24px; font-size: 20px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px;">
+                <i class="fas fa-clipboard-check" style="color: var(--warning);"></i> Asignar Operativo
+            </h2>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Seleccione un técnico disponible
+                para hacerse cargo de este requerimiento.</p>
+
+            <input type="hidden" id="asigJobId">
+            <select id="asigSelectOp" class="input-premium">
+                <option value="">Selecciona al técnico...</option>
+            </select>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="confirmarAsignacion()" class="btn btn-warning" id="btnAsigarTicket">ASIGNAR
+                    AHORA</button>
+                <button onclick="document.getElementById('modal-asignar').classList.add('oculto')"
+                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL NUEVO CLIENTE (ADMIN) ================= -->
+    <div id="modal-nuevo-cliente" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 24px; font-size: 20px; font-weight: 700; color: var(--text-main);">
+                <i class="fas fa-building" style="color: var(--secondary);"></i> Registro de Cliente
+            </h2>
+            <input id="cliNom" type="text" placeholder="Empresa / Razón Social" class="input-premium">
+            <input id="cliMail" type="email" placeholder="Correo electrónico corporativo" class="input-premium">
+            <input id="cliPass" type="password" placeholder="Contraseña de acceso inicial" class="input-premium">
+            <input id="cliCont" type="text" placeholder="Persona de contacto" class="input-premium">
+            <input id="cliTel" type="tel" placeholder="Teléfono de contacto" class="input-premium">
+            <input id="cliDir" type="text" placeholder="Dirección de servicio" class="input-premium">
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="crearClienteAdmin()" class="btn btn-secondary" id="btnCrearCliAdmin">REGISTRAR
+                    CLIENTE</button>
+                <button onclick="document.getElementById('modal-nuevo-cliente').classList.add('oculto')"
+                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL NUEVO PEDIDO (ADMIN GENERA) ================= -->
+    <div id="modal-nuevo-pedido-admin" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; font-size: 18px; font-weight: 700; color: var(--text-main);">
+                <i class="fas fa-ticket-alt" style="color: var(--primary);"></i> Generar Requerimiento
+            </h2>
+
+            <input type="hidden" id="padminClientId">
+            <div
+                style="background: var(--bg-app); padding: 12px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <small
+                    style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Asignar
+                    a:</small>
+                <strong id="padminClientName" style="color: var(--text-main); font-size: 14px;">-</strong>
+            </div>
+
+            <label
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">TIPO
+                DE SERVICIO</label>
+            <select id="padminServicio" class="input-premium">
+                <option value="Mantenimiento">Mantenimiento</option>
+                <option value="Soporte">Soporte</option>
+                <option value="Impresora">Impresora</option>
+                <option value="Reparaciones Generales">Reparaciones Generales</option>
+            </select>
+
+            <label
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 10px;">DESCRIPCIÓN
+                DEL REQUERIMIENTO</label>
+            <textarea id="padminDesc" placeholder="Detalle el problema o tarea a realizar..." class="input-premium"
+                style="height: 100px; resize: vertical;"></textarea>
+
+            <label
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 10px;">NIVEL
+                DE PRIORIDAD</label>
+            <select id="padminUrgency" class="input-premium">
+                <option value="Alta">🔴 ALTA - Intervención Inmediata</option>
+                <option value="Media" selected>🟡 MEDIA - Programada/Preventiva</option>
+                <option value="Baja">🟢 BAJA - Control / Rutina</option>
+            </select>
+
+            <label
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 10px;">TÉCNICO
+                ASIGNADO</label>
+            <select id="padminOperario" class="input-premium">
+                <option value="">— Sin asignar por ahora —</option>
+            </select>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="crearPedidoAdmin()" class="btn btn-primary" id="btnCrearPedidoAdmin">GENERAR
+                    TICKET</button>
+                <button onclick="document.getElementById('modal-nuevo-pedido-admin').classList.add('oculto')"
+                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL ASIGNAR TÉCNICO ================= -->
+    <div id="modal-asignar" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px; font-size: 18px; font-weight: 700; color: var(--text-main);">
+                <i class="fas fa-user-plus" style="color: var(--warning);"></i> Asignar Operario
+            </h2>
+
+            <input type="hidden" id="asigJobId">
+
+            <label
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">SELECCIONAR
+                TÉCNICO DISPONIBLE</label>
+            <select id="asigSelectOp" class="input-premium">
+                <option value="">Cargando técnicos...</option>
+            </select>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="confirmarAsignacion()" class="btn btn-warning" id="btnAsigarTicket">CONFIRMAR
+                    ASIGNACIÓN</button>
+                <button onclick="document.getElementById('modal-asignar').classList.add('oculto')"
+                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL DETALLE DE TRABAJO ================= -->
+    <div id="modal-detalle-trabajo" class="modal-overlay oculto">
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin: 0;">
+                    <i class="fas fa-clipboard-list" style="color: var(--primary);"></i> Detalle del Requerimiento
+                </h2>
+                <span id="detJobPrioridad" class="badge">URGENCIA</span>
+            </div>
+
+            <div style="display: grid; gap: 16px;">
+                <div style="background: var(--bg-app); padding: 15px; border-radius: 12px;">
+                    <small style="color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 600;">DESCRIPCIÓN DEL PROBLEMA</small>
+                    <p id="detJobDesc" style="font-size: 14px; line-height: 1.5; color: var(--text-main); margin: 0; white-space: pre-wrap;"></p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="background: var(--bg-app); padding: 12px; border-radius: 10px;">
+                        <small style="color: var(--text-muted); display: block; margin-bottom: 4px;">CLIENTE</small>
+                        <strong id="detJobCliente" style="font-size: 13px;">-</strong>
+                    </div>
+                    <div style="background: var(--bg-app); padding: 12px; border-radius: 10px;">
+                        <small style="color: var(--text-muted); display: block; margin-bottom: 4px;">CATEGORÍA</small>
+                        <strong id="detJobServicio" style="font-size: 13px; color: var(--primary);">-</strong>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-app); padding: 12px; border-radius: 10px;">
+                    <small style="color: var(--text-muted); display: block; margin-bottom: 4px;">TÉCNICO RESPONSABLE</small>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-hard-hat" style="color: var(--warning);"></i>
+                        <span id="detJobOperario" style="font-size: 13px; font-weight: 600;">-</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
+                    <small style="color: var(--text-muted);">ID Ticket: <span id="detJobId"></span></small>
+                    <small style="color: var(--text-muted);"><i class="far fa-calendar-alt"></i> <span id="detJobFecha"></span></small>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <button onclick="document.getElementById('modal-detalle-trabajo').classList.add('oculto')"
+                    class="btn btn-outline">Cerrar Detalle</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js?v=1.1"></script>
+    <script>
+        // UI Helpers Drop-in (Mobile sidebar toggle)
+        window.toggleSidebar = function () {
+            document.getElementById('adminSidebar').classList.toggle('open');
+        }
+    </script>
+</body>
+
+</html>
