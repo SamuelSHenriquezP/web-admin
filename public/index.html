@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="styles.css?v=1.1">
     <link rel="icon" href="logo.png?v=1" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 
 <body>
@@ -105,7 +106,9 @@
                                 <option value="todos">Todos los Estados</option>
                                 <option value="solicitado">🔴 Solicitudes Nuevas</option>
                                 <option value="asignado">🟡 Técnicos Asignados</option>
-                                <option value="completado">🟢 Operaciones Terminadas</option>
+                                <option value="revision_cliente">🟠 En Revisión por Cliente</option>
+                                <option value="reporte_aprobado">🟢 Reporte Aprobado (Pendiente Cierre)</option>
+                                <option value="completado">✅ Operaciones Terminadas</option>
                             </select>
                         </div>
 
@@ -596,15 +599,44 @@
                     <small style="color: var(--text-muted);">ID Ticket: <span id="detJobId"></span></small>
                     <small style="color: var(--text-muted);"><i class="far fa-calendar-alt"></i> <span id="detJobFecha"></span></small>
                 </div>
+                <div style="background: var(--bg-app); padding: 12px; border-radius: 10px; margin-top: 10px;">
+                    <button onclick="abrirMapaAdmin()" class="btn btn-outline" style="width: 100%;">
+                        <i class="fas fa-map-marked-alt" style="color: var(--secondary);"></i> Ver / Validar Ubicación en Mapa
+                    </button>
+                </div>
             </div>
 
-            <div style="margin-top: 24px;">
+            <div style="margin-top: 24px; display: flex; gap: 12px;">
+                <button id="btnCierreAdmin" onclick="cerrarYFacturarJob()" class="btn btn-success oculto" style="background: #22c55e; color: white;">
+                    <i class="fas fa-check-double"></i> CERRAR Y FACTURAR
+                </button>
                 <button onclick="document.getElementById('modal-detalle-trabajo').classList.add('oculto')"
-                    class="btn btn-outline">Cerrar Detalle</button>
+                    class="btn btn-outline" style="flex: 1;">Cerrar Detalle</button>
             </div>
         </div>
     </div>
 
+    <!-- ================= MODAL MAPA (ADMIN) ================= -->
+    <div id="modal-mapa" class="modal-overlay oculto">
+        <div class="modal-content" style="max-width: 600px; padding: 20px;">
+            <h2 style="margin-bottom: 12px; font-size: 18px; font-weight: 700; color: var(--text-main);">
+                <i class="fas fa-map-marker-alt" style="color: var(--secondary);"></i> Validación de Ubicación
+            </h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Si el punto GPS es incorrecto, arrastra el pin hacia el lugar exacto y guarda los cambios.
+            </p>
+            
+            <input type="hidden" id="mapaJobId">
+            <div id="mapaAdminView" style="width: 100%; height: 350px; background: #e2e8f0; border-radius: 8px; margin-bottom: 16px;"></div>
+
+            <div style="display: flex; gap: 12px;">
+                <button onclick="guardarUbicacionMapa()" class="btn btn-secondary" id="btnGuardarMapa">GUARDAR UBICACIÓN VALIDADA</button>
+                <button onclick="document.getElementById('modal-mapa').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module" src="app.js?v=1.1"></script>
     <script>
         // UI Helpers Drop-in (Mobile sidebar toggle)

@@ -433,6 +433,17 @@ export const verDetalleTrabajo = (id) => {
     }
     document.getElementById('detJobFecha').innerText = fechaStr;
 
+    // Control "CERRAR Y FACTURAR" button
+    const btnCierre = document.getElementById('btnCierreAdmin');
+    if (t.estado === 'reporte_aprobado') {
+        btnCierre.classList.remove('oculto');
+    } else {
+        btnCierre.classList.add('oculto');
+    }
+
+    // Set map job ID
+    document.getElementById('mapaJobId').value = t.id;
+
     document.getElementById('modal-detalle-trabajo').classList.remove('oculto');
 };
 
@@ -842,6 +853,95 @@ export const crearClienteAdmin = async () => {
     finally { btn.innerHTML = originalText; }
 };
 
+// --- MÓDULO MAPAS LEAFLET ---
+let leafletMap = null;
+let currentMarker = null;
+
+export const abrirMapaAdmin = () => {
+    const jobId = document.getElementById('mapaJobId').value;
+    const job = cacheTrabajos.find(j => j.id === jobId);
+    if (!job) return showToast("Trabajo no encontrado", "error");
+
+    document.getElementById('modal-detalle-trabajo').classList.add('oculto');
+    document.getElementById('modal-mapa').classList.remove('oculto');
+
+    const lat = job.lat || 4.5709; // Default Colombia o valor GPS
+    const lng = job.lng || -74.2973;
+
+    if (!leafletMap) {
+        leafletMap = L.map('mapaAdminView').setView([lat, lng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(leafletMap);
+    } else {
+        leafletMap.setView([lat, lng], 14);
+    }
+
+    if (currentMarker) {
+        leafletMap.removeLayer(currentMarker);
+    }
+
+    currentMarker = L.marker([lat, lng], { draggable: true }).addTo(leafletMap);
+    
+    // Fix leaflet grey box if inside disabled/hidden modal
+    setTimeout(() => {
+        leafletMap.invalidateSize();
+    }, 200);
+};
+
+export const guardarUbicacionMapa = async () => {
+    const jobId = document.getElementById('mapaJobId').value;
+    if (!currentMarker) return;
+
+    const { lat, lng } = currentMarker.getLatLng();
+    const btn = document.getElementById('btnGuardarMapa');
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GUARDANDO...';
+
+    try {
+        await updateDoc(doc(db, "trabajos", jobId), {
+            lat: lat,
+            lng: lng,
+            ubicacion_validada: true,
+            ubicacionActualizadaPorAdminEn: new Date()
+        });
+        patchCache(cacheTrabajos, jobId, { lat, lng, ubicacion_validada: true });
+        showToast("Ubicación validada y guardada.", "success");
+        document.getElementById('modal-mapa').classList.add('oculto');
+        document.getElementById('modal-detalle-trabajo').classList.remove('oculto');
+    } catch (e) {
+        showToast("Error al guardar ubicación.", "error");
+    } finally {
+        btn.innerHTML = original;
+    }
+};
+
+export const cerrarYFacturarJob = async () => {
+    const jobId = document.getElementById('detJobId').innerText; // Using snippet or getting from mapaJobId
+    const realJobId = document.getElementById('mapaJobId').value;
+    
+    if (!confirm("¿Confirma cerrar este trabajo de manera definitiva y enviarlo a facturación?")) return;
+
+    const btn = document.getElementById('btnCierreAdmin');
+    const org = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CERRANDO...';
+
+    try {
+        await updateDoc(doc(db, "trabajos", realJobId), {
+            estado: 'completado',
+            fechaCierreFacturacion: new Date()
+        });
+        patchCache(cacheTrabajos, realJobId, { estado: 'completado' });
+        renderTrabajos();
+        showToast("TRABAJO CERRADO DEFINITIVAMENTE.", "success");
+        document.getElementById('modal-detalle-trabajo').classList.add('oculto');
+    } catch (e) {
+        showToast("Error al procesar el cierre.", "error");
+    } finally {
+        btn.innerHTML = org;
+    }
+};
+
 // Global Exposure
 window.verDetalleUsuario = verDetalleUsuario;
 window.toggleEstadoUsuario = toggleEstadoUsuario;
@@ -852,3 +952,6 @@ window.abrirModalCalificar = abrirModalCalificar;
 window.guardarCalificacion = guardarCalificacion;
 window.crearOperario = crearOperario;
 window.crearClienteAdmin = crearClienteAdmin;
+window.abrirMapaAdmin = abrirMapaAdmin;
+window.guardarUbicacionMapa = guardarUbicacionMapa;
+window.cerrarYFacturarJob = cerrarYFacturarJob;
