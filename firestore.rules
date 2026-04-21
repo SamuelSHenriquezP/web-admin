@@ -33,8 +33,8 @@ service cloud.firestore {
 
     match /trabajos/{jobId} {
       allow create: if request.auth != null && (
-                      // Cliente crea su propio pedido
-                      (request.resource.data.clienteId == request.auth.uid && request.resource.data.estado == 'Solicitado') ||
+                      // Cliente crea su propio pedido (soporta minúsculas y mayúsculas para evitar errores)
+                      (request.resource.data.clienteId == request.auth.uid && request.resource.data.estado.lower() == 'solicitado') ||
                       // Admin crea pedido en nombre de un cliente
                       isAdmin()
                     );
@@ -47,8 +47,15 @@ service cloud.firestore {
       
       allow update: if request.auth != null && (
         isAdmin() ||
-        // Operarios solo pueden cambiar el estado a 'completado'
-        (resource.data.operarioId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']) && request.resource.data.estado == 'completado')
+        // Operarios pueden enviar el reporte y cambiar de estado
+        (resource.data.operarioId == request.auth.uid && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'reporteTecnico', 'tiempoCompletado', 'tiempoEnCamino', 'tiempoEnSitio']) && 
+         request.resource.data.estado in ['en_camino', 'retrasado', 'en_sitio', 'revision_cliente']
+        ) ||
+        // Clientes pueden calificar el servicio terminado
+        (resource.data.clienteId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'evaluacionCliente', 'reporteAprobado']) &&
+         request.resource.data.estado in ['evaluado_cliente', 'reporte_aprobado'])
       );
       
       allow delete: if request.auth != null && isAdmin();
