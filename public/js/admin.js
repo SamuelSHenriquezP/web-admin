@@ -1,4 +1,4 @@
-import { collection, query, where, orderBy, limit, onSnapshot, getDocs, startAfter, doc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { collection, query, where, orderBy, limit, onSnapshot, getDocs, startAfter, doc, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-functions.js";
 import { db, functions } from "./config.js";
 import { showToast, cambiarPestana } from "./ui.js";
@@ -16,6 +16,17 @@ let hayMasClientes = false;
 let hayMasEquipo = false;
 let modoConsultaActivo = 'todos'; // 'todos' | 'estado:X' | 'busqueda:X'
 let unsubDashboard = null;
+
+// ─── HELPER XSS ─────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 // ─── HELPERS DE CACHÉ LOCAL ───────────────────────────────────────────────────
 function patchCache(cache, id, changes) {
@@ -251,9 +262,9 @@ export const renderTrabajos = (lista = null) => {
             // Botón de Ver Detalle (Ojo) siempre presente
             const btnVer = `<button class="btn btn-outline btn-small" onclick="verDetalleTrabajo('${t.id}')" title="Ver Detalles"><i class="fas fa-eye"></i></button>`;
             
-            if (t.estado === 'Solicitado' || t.estado === 'solicitado') {
+            if (t.estado === 'solicitado') {
                 accion = `<button class="btn btn-primary btn-small" onclick="abrirModalAsignar('${t.id}')">Asignar</button>`;
-            } else if ((t.estado === 'completado' || t.estado === 'Completado') && !t.calificado) {
+            } else if (t.estado === 'completado' && !t.calificado) {
                 accion = `<button class="btn btn-warning btn-small" onclick="abrirModalCalificar('${t.id}', '${t.operarioId}')"><i class="fas fa-star"></i> Calificar</button>`;
             } else if (t.calificado) {
                 accion = `<span style="font-size: 11px; color: #fbbf24;">${'⭐'.repeat(t.puntosAdmin)}</span>`;
@@ -263,13 +274,13 @@ export const renderTrabajos = (lista = null) => {
             
             return `
             <tr>
-                <td><span class="badge badge-${t.estado ? t.estado.toLowerCase().split('_')[0] : 'solicitado'}">${(t.estado || 'SOLICITADO').toUpperCase()}</span></td>
-                <td style="font-weight: 700;">${t.clienteNombre || 'Sin Registro'}</td>
-                <td style="color: var(--primary); font-weight: 600;">${t.servicio || t.categoria || 'General'}</td>
+                <td><span class="badge badge-${t.estado ? t.estado.toLowerCase().split('_')[0] : 'solicitado'}">${escapeHtml((t.estado || 'SOLICITADO').toUpperCase())}</span></td>
+                <td style="font-weight: 700;">${escapeHtml(t.clienteNombre) || 'Sin Registro'}</td>
+                <td style="color: var(--primary); font-weight: 600;">${escapeHtml(t.servicio || t.categoria) || 'General'}</td>
                 <td>
                     <span style="display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-hard-hat" style="color: ${t.operarioNombre ? 'var(--warning)' : 'var(--border)'};"></i>
-                        <span style="color: ${t.operarioNombre ? 'inherit' : 'var(--text-muted)'}">${t.operarioNombre || 'Pendiente...'}</span>
+                        <span style="color: ${t.operarioNombre ? 'inherit' : 'var(--text-muted)'}">${escapeHtml(t.operarioNombre) || 'Pendiente...'}</span>
                     </span>
                 </td>
                 <td style="text-align: center;">${btnVer}</td>
@@ -288,12 +299,12 @@ export const renderClientes = (lista = null) => {
         : data.map(c => `
         <tr>
             <td>
-                <div style="font-weight: 700;">${c.nombre}</div>
+                <div style="font-weight: 700;">${escapeHtml(c.nombre)}</div>
                 <div style="font-size: 11px; margin-top: 4px;">
                     ${c.activo === false ? '<span style="color: var(--danger);">● PENDIENTE</span>' : '<span style="color: #22c55e;">● ACTIVO</span>'}
                 </div>
             </td>
-            <td style="font-size: 13px;">${c.contacto || 'N/A'}</td>
+            <td style="font-size: 13px;">${escapeHtml(c.contacto) || 'N/A'}</td>
             <td style="text-align: center;">
                 <span style="background: var(--bg-app); padding: 4px 12px; border-radius: 8px; font-weight: 700; color: var(--secondary);">${c.totalServicios || 0}</span>
             </td>
@@ -301,7 +312,7 @@ export const renderClientes = (lista = null) => {
                 <button class="btn btn-outline btn-small" onclick="verDetalleUsuario('${c.id}', 'cliente')" title="Ver Expediente"><i class="fas fa-eye"></i></button>
             </td>
             <td style="text-align: center;">
-                <button class="btn btn-outline btn-small" onclick="abrirModalNuevoPedido('${c.id}', '${c.nombre}')" title="Crear Pedido"><i class="fas fa-ticket-alt" style="color: var(--primary);"></i></button>
+                <button class="btn btn-outline btn-small" onclick="abrirModalNuevoPedido('${c.id}')" title="Crear Pedido"><i class="fas fa-ticket-alt" style="color: var(--primary);"></i></button>
             </td>
         </tr>
     `).join('');
@@ -322,7 +333,7 @@ export const renderEquipo = (lista = null) => {
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-id-badge" style="color: var(--warning);"></i>
                         <div>
-                            <div>${o.nombre}</div>
+                            <div>${escapeHtml(o.nombre)}</div>
                             <div style="font-size: 11px; color: #fbbf24;">${'⭐'.repeat(Math.round(o.calificacion || 0)) || 'Sin calificar'}</div>
                         </div>
                     </div>
@@ -343,14 +354,16 @@ export const renderEquipo = (lista = null) => {
 };
 
 // ─ BÚSQUEDA ─
-let _searchTimer = null;
+let _searchTimerTrabajos = null;
+let _searchTimerClientes = null;
+let _searchTimerEquipo = null;
 
 export const buscarTrabajosServidor = (texto) => {
-    clearTimeout(_searchTimer);
+    clearTimeout(_searchTimerTrabajos);
     const term = texto.trim();
     if (!term) { filtrarTrabajosPorEstado(); return; }
 
-    _searchTimer = setTimeout(async () => {
+    _searchTimerTrabajos = setTimeout(async () => {
         if (unsubDashboard) { unsubDashboard(); unsubDashboard = null; }
         modoConsultaActivo = `busqueda:${term}`;
         try {
@@ -369,11 +382,15 @@ export const buscarTrabajosServidor = (texto) => {
 };
 
 export const buscarClientesServidor = (texto) => {
-    clearTimeout(_searchTimer);
+    clearTimeout(_searchTimerClientes);
     const term = texto.trim();
-    if (!term) { cargarDatosBase(); return; }
+    if (!term) {
+        renderClientes();
+        document.getElementById('btnCargarMasClientes').style.display = hayMasClientes ? 'inline-flex' : 'none';
+        return;
+    }
 
-    _searchTimer = setTimeout(async () => {
+    _searchTimerClientes = setTimeout(async () => {
         try {
             const snap = await getDocs(query(
                 collection(db, "usuarios"),
@@ -384,18 +401,21 @@ export const buscarClientesServidor = (texto) => {
             ));
             const resultados = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             renderClientes(resultados);
-            // Al buscar, ocultamos el cargar más para evitar confusiones de paginación
             document.getElementById('btnCargarMasClientes').style.display = 'none';
         } catch (e) { console.error(e); }
     }, 400);
 };
 
 export const buscarEquipoServidor = (texto) => {
-    clearTimeout(_searchTimer);
+    clearTimeout(_searchTimerEquipo);
     const term = texto.trim();
-    if (!term) { cargarDatosBase(); return; }
+    if (!term) {
+        renderEquipo();
+        document.getElementById('btnCargarMasEquipo').style.display = hayMasEquipo ? 'inline-flex' : 'none';
+        return;
+    }
 
-    _searchTimer = setTimeout(async () => {
+    _searchTimerEquipo = setTimeout(async () => {
         try {
             const snap = await getDocs(query(
                 collection(db, "usuarios"),
@@ -454,7 +474,7 @@ export const abrirModalAsignar = (jobId) => {
     if (select) {
         let options = '<option value="">Selecciona al técnico...</option>';
         cacheEquipo.forEach(op => {
-            options += `<option value="${op.id}|${op.nombre}">${op.nombre}</option>`;
+            options += `<option value="${op.id}">${escapeHtml(op.nombre)}</option>`;
         });
         select.innerHTML = options;
     }
@@ -466,7 +486,9 @@ export const confirmarAsignacion = async () => {
     const sValue = document.getElementById('asigSelectOp').value;
     if (!sValue) return showToast("Por favor selecciona un técnico.", "error");
 
-    const [opId, opNombre] = sValue.split('|');
+    const opId = sValue;
+    const opData = cacheEquipo.find(op => op.id === opId);
+    const opNombre = opData ? opData.nombre : '';
     const btn = document.getElementById('btnAsigarTicket');
     const originText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
@@ -492,12 +514,13 @@ window.filtrarTrabajosPorEstado = filtrarTrabajosPorEstado;
 window.buscarTrabajosServidor = buscarTrabajosServidor;
 window.buscarClientesServidor = buscarClientesServidor;
 window.buscarEquipoServidor = buscarEquipoServidor;
-window.filtrarTrabajosPorEstado = filtrarTrabajosPorEstado;
 window.verDetalleTrabajo = verDetalleTrabajo;
 window.confirmarAsignacion = confirmarAsignacion;
 window.abrirModalAsignar = abrirModalAsignar;
 window.cargarDatosBase = cargarDatosBase;
-window.abrirModalNuevoPedido = (id, nombre) => {
+window.abrirModalNuevoPedido = (id) => {
+    const clientData = cacheClientes.find(c => c.id === id);
+    const nombre = clientData ? clientData.nombre : '';
     document.getElementById('padminClientId').value = id;
     document.getElementById('padminClientName').innerText = nombre;
     document.getElementById('padminDesc').value = '';
@@ -507,7 +530,7 @@ window.abrirModalNuevoPedido = (id, nombre) => {
     let options = '<option value="">— Sin asignar por ahora —</option>';
     cacheEquipo.forEach(op => {
         const cert = (Array.isArray(op.capacidades) ? op.capacidades[0] : op.capacidades) === 'Certificado' ? '✅' : '';
-        options += `<option value="${op.id}|${op.nombre}">${cert} ${op.nombre}</option>`;
+        options += `<option value="${op.id}">${cert} ${escapeHtml(op.nombre)}</option>`;
     });
     select.innerHTML = options;
 
@@ -530,7 +553,9 @@ window.crearPedidoAdmin = async () => {
     btn.disabled = true;
 
     // Determinar si se asigna operario en este mismo paso
-    const [opId, opNombre] = opValue ? opValue.split('|') : [null, null];
+    const opId = opValue || null;
+    const opData = opId ? cacheEquipo.find(op => op.id === opId) : null;
+    const opNombre = opData ? opData.nombre : null;
     const estaAsignado = !!opId;
 
     try {
@@ -540,10 +565,10 @@ window.crearPedidoAdmin = async () => {
             servicio: servicio,
             descripcion: desc,
             urgencia: urgency,
-            estado: estaAsignado ? 'asignado' : 'Solicitado',
+            estado: estaAsignado ? 'asignado' : 'solicitado',
             operarioId: opId || null,
             operarioNombre: opNombre || null,
-            creadoEn: new Date(),
+            creadoEn: serverTimestamp(),
             creadoPor: 'Administrador'
         });
 

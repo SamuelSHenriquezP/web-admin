@@ -69,7 +69,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 export const login = () => {
-    const e = document.getElementById('logEmail').value;
+    const e = document.getElementById('logEmail').value.trim();
     const p = document.getElementById('logPass').value;
     if (!e || !p) return showToast("Por favor, ingresa correo y contraseña.", "error");
     const btn = document.querySelector('#form-login .btn-primary');

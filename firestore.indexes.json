@@ -4,15 +4,16 @@
       "collectionGroup": "trabajos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "clienteId", "order": "ASCENDING" },
-        { "fieldPath": "creadoEn", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "trabajos",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "operarioId", "order": "ASCENDING" },
+        { "fieldPath": "estado",     "order": "ASCENDING" },
+        { "fieldPath": "creadoEn",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "trabajos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado",   "order": "ASCENDING" },
         { "fieldPath": "creadoEn", "order": "DESCENDING" }
       ]
     },
@@ -20,7 +21,23 @@
       "collectionGroup": "trabajos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "clienteId", "order": "ASCENDING" },
+        { "fieldPath": "creadoEn",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "trabajos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "operarioId",    "order": "ASCENDING" },
+        { "fieldPath": "clienteNombre", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "usuarios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rol",      "order": "ASCENDING" },
         { "fieldPath": "creadoEn", "order": "DESCENDING" }
       ]
     }
