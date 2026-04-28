@@ -252,9 +252,10 @@
                         TÉCNICA</label>
                     <select id="cliServicio" class="input-premium">
                         <option value="">Seleccione el tipo de falla...</option>
-                        <option value="Electricidad">⚡ Redes Eléctricas y Tableros</option>
-                        <option value="Climatizacion">❄️ Climatización y AA</option>
-                        <option value="Plomeria">🚰 Fontanería y Red Hidráulica</option>
+                        <option value="Mantenimiento">Mantenimiento</option>
+                        <option value="Soporte Técnico">Soporte Técnico</option>
+                        <option value="Impresora / Fotocopiadora">Impresora / Fotocopiadora</option>
+                        <option value="Reparaciones Generales">Reparaciones Generales</option>
                     </select>
 
                     <label
@@ -264,9 +265,8 @@
                         placeholder="Describa el problema con el mayor detalle posible para enviar al especialista adecuado..."
                         class="input-premium" style="height: 140px; resize: vertical;"></textarea>
 
-                    <button onclick="enviarPedido()" class="btn btn-secondary"
-                        style="margin-top: 10px; font-size: 14px;"><i class="fas fa-paper-plane"></i> ENVIAR AL
-                        DESPACHO</button>
+                    <button onclick="abrirMapaCliente()" class="btn btn-secondary"
+                        style="margin-top: 10px; font-size: 14px;"><i class="fas fa-location-crosshairs"></i> CONTINUAR A UBICACIÓN</button>
                 </div>
 
                 <div class="tarjeta" style="border-top: 3px solid var(--primary);">
@@ -283,7 +283,7 @@
 
     <!-- ================= 4. PANEL OPERARIO (TÉCNICO) ================= -->
     <div id="view-operario" class="view">
-        <header class="header-cliente" style="background: var(--bg-sidebar);">
+        <header class="header-cliente" style="background: linear-gradient(135deg, #0f172a, #1e293b); border-bottom: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
             <h1 class="logo-auth" style="color: white !important; margin: 0; font-size: 22px; letter-spacing: -1px;">
                 <img src="logo.png?v=1" alt="Logo" class="header-logo" style="filter: brightness(0) invert(1);">
                 SERVI<span style="color: var(--warning);">INTEL</span> <span
@@ -292,17 +292,21 @@
             <div style="display: flex; gap: 16px; align-items: center; color: white;">
                 <span style="font-weight: 500; font-size: 14px; opacity: 0.9;" id="op-nombre-display">Técnico</span>
                 <button onclick="logout()" class="btn-salir"
-                    style="border-color: rgba(255,255,255,0.2); color: white;"><i class="fas fa-power-off"></i></button>
+                    style="border-color: rgba(255,255,255,0.2); color: white; transition: all 0.2s;"><i class="fas fa-power-off"></i></button>
             </div>
         </header>
 
-        <main class="contenedor page-content">
-            <div class="tarjeta" style="border-top: 3px solid var(--warning);">
-                <div class="titulo-seccion"><i class="fas fa-hammer"
-                        style="color: var(--warning); margin-right: 8px;"></i> Trabajos Asignados a mi Cargo</div>
-                <div id="lista-op-pedidos" style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
-                    <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">Cargando tus tareas
-                        asignadas...</div>
+        <main class="contenedor page-content" style="max-width: 800px;">
+            <div style="margin-bottom: 24px;">
+                <h2 style="font-size: 24px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px; margin-bottom: 8px;">Mis Tareas Asignadas</h2>
+                <p style="color: #64748b; font-size: 15px;">Gestiona todas tus intervenciones técnicas en curso.</p>
+            </div>
+            
+            <div id="lista-op-pedidos" style="max-height: calc(100vh - 220px); overflow-y: auto; padding-right: 10px; padding-bottom: 40px;">
+                <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 32px; color: #0c9bc9; margin-bottom: 16px;"></i>
+                    <h3 style="color: #1e293b; font-size: 18px; font-weight: 700; margin-bottom: 8px;">Sincronizando tareas...</h3>
+                    <p style="color: #64748b; font-size: 14px;">Estamos conectando con el centro de control.</p>
                 </div>
             </div>
         </main>
@@ -499,8 +503,8 @@
                 DE SERVICIO</label>
             <select id="padminServicio" class="input-premium">
                 <option value="Mantenimiento">Mantenimiento</option>
-                <option value="Soporte">Soporte</option>
-                <option value="Impresora">Impresora</option>
+                <option value="Soporte Técnico">Soporte Técnico</option>
+                <option value="Impresora / Fotocopiadora">Impresora / Fotocopiadora</option>
                 <option value="Reparaciones Generales">Reparaciones Generales</option>
             </select>
 
@@ -578,6 +582,8 @@
                     <button onclick="abrirMapaAdmin()" class="btn btn-outline" style="width: 100%;">
                         <i class="fas fa-map-marked-alt" style="color: var(--secondary);"></i> Ver / Validar Ubicación en Mapa
                     </button>
+                    <p style="margin-top: 12px; margin-bottom: 4px; font-size: 11px; font-weight: 700; color: var(--text-muted);">DIRECCIÓN / REFERENCIA (OPCIONAL):</p>
+                    <p id="detJobDireccion" style="font-size: 13px; color: var(--text-main); margin: 0; padding: 10px; background: white; border-radius: 8px; border: 1px solid var(--border);"></p>
                 </div>
             </div>
 
@@ -607,6 +613,117 @@
             <div style="display: flex; gap: 12px;">
                 <button onclick="guardarUbicacionMapa()" class="btn btn-secondary" id="btnGuardarMapa">GUARDAR UBICACIÓN VALIDADA</button>
                 <button onclick="document.getElementById('modal-mapa').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL MAPA CLIENTE ================= -->
+    <div id="modal-mapa-cliente" class="modal-overlay oculto">
+        <div class="modal-content" style="max-width: 600px; padding: 20px;">
+            <h2 style="margin-bottom: 12px; font-size: 18px; font-weight: 700; color: var(--text-main);">
+                <i class="fas fa-location-crosshairs" style="color: var(--secondary);"></i> Ubicación del Servicio
+            </h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Mueve el mapa para marcar el sitio exacto del servicio requerido. Si se te dificulta encontrar el punto exacto, puedes dejar tu dirección escrita abajo:
+            </p>
+            <input id="cliDirTexto" type="text" placeholder="Ej: Carrera 45 # 12-00, Edificio Norte" class="input-premium" style="margin-bottom: 16px;">
+            <div style="position: relative;">
+                <div id="mapaClienteView" style="width: 100%; height: 350px; background: #e2e8f0; border-radius: 8px; margin-bottom: 16px; z-index: 1;"></div>
+                <div style="position: absolute; top: calc(50% - 20px); left: 50%; transform: translate(-50%, -50%); z-index: 1000; pointer-events: none;">
+                    <i class="fas fa-map-marker-alt" style="color: var(--secondary); font-size: 40px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="confirmarUbicacionCliente()" class="btn btn-secondary" id="btnConfirmarUbiCli">CONFIRMAR Y SOLICITAR TÉCNICO</button>
+                <button onclick="document.getElementById('modal-mapa-cliente').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL VISTO BUENO CLIENTE ================= -->
+    <div id="modal-visto-bueno" class="modal-overlay oculto">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 700;"><i class="fas fa-file-signature" style="color: var(--primary);"></i> Resumen de Servicio</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">El técnico ha finalizado. Verifique los detalles y brinde su calificación.</p>
+            <div id="resumenReporteTecnico" style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; max-height: 250px; overflow-y: auto; background: var(--bg-app); padding: 12px; border-radius: 8px;">
+            </div>
+            <input type="hidden" id="vbJobId">
+            <h3 style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Calificación del Servicio</h3>
+            <div id="estrellasVb" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; font-size: 32px; color: var(--border); cursor: pointer;">
+                <i class="fas fa-star" data-val="1"></i>
+                <i class="fas fa-star" data-val="2"></i>
+                <i class="fas fa-star" data-val="3"></i>
+                <i class="fas fa-star" data-val="4"></i>
+                <i class="fas fa-star" data-val="5"></i>
+            </div>
+            <textarea id="vbComentario" placeholder="Déjanos un comentario adicional..." class="input-premium" style="height: 80px; resize: none;"></textarea>
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button id="btnAprobarReporte" onclick="enviarAprobacionCliente()" class="btn" style="background: #22c55e; color: white;"><i class="fas fa-check-circle"></i> ACEPTAR Y FINALIZAR</button>
+                <button onclick="document.getElementById('modal-visto-bueno').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL PIN OPERARIO ================= -->
+    <div id="modal-pin-operario" class="modal-overlay oculto">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 700; text-align: center;"><i class="fas fa-shield-alt" style="color: var(--primary);"></i> Verificar PIN</h2>
+            <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px;">Solicita al cliente el código de 4 dígitos para confirmar tu llegada.</p>
+            <input type="hidden" id="pinJobId">
+            <input type="hidden" id="pinExpected">
+            <input id="pinIngresado" type="number" placeholder="• • • •" class="input-premium" style="text-align: center; font-size: 32px; letter-spacing: 12px; font-weight: 900; height: 60px;">
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button onclick="verificarPinOperario()" class="btn btn-primary" id="btnVerificarPin">VERIFICAR</button>
+                <button onclick="document.getElementById('modal-pin-operario').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL REPORTE TÉCNICO OPERARIO ================= -->
+    <div id="modal-reporte-tecnico" class="modal-overlay oculto">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 700;"><i class="fas fa-clipboard-list" style="color: var(--primary);"></i> Generar Reporte Técnico</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Llene la constancia de servicio detallada de su intervención.</p>
+            <input type="hidden" id="repJobId">
+
+            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">CÉDULA RESPONSABLE</label>
+                <input id="repCedula" type="number" placeholder="Documento de Identidad" class="input-premium" style="margin-bottom: 0;">
+            </div>
+
+            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">EQUIPOS INTERVENIDOS</label>
+                <div id="repEquiposContainer"></div>
+                <button onclick="agregarFila('equipos')" class="btn btn-outline btn-small" style="margin-top: 8px;"><i class="fas fa-plus"></i> Añadir Equipo</button>
+            </div>
+
+            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">DETALLES DE LA INTERVENCIÓN</label>
+                <div id="repDetallesContainer"></div>
+                <button onclick="agregarFila('detalles')" class="btn btn-outline btn-small" style="margin-top: 8px;"><i class="fas fa-plus"></i> Añadir Detalle</button>
+            </div>
+
+            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">INSUMOS UTILIZADOS</label>
+                <div id="repInsumosContainer"></div>
+                <button onclick="agregarFila('insumos')" class="btn btn-outline btn-small" style="margin-top: 8px;"><i class="fas fa-plus"></i> Añadir Insumo</button>
+            </div>
+
+            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">LIQUIDACIÓN DE SERVICIOS</label>
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <input id="repCostoEmpresa" type="number" placeholder="Costo Empresa ($)" class="input-premium" style="margin-bottom: 0;">
+                    </div>
+                    <div style="flex: 1;">
+                        <input id="repCostoTecnico" type="number" placeholder="Costo Técnico ($)" class="input-premium" style="margin-bottom: 0;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; position: sticky; bottom: 0; background: var(--bg-card); padding-top: 16px;">
+                <button id="btnEnviarReporte" onclick="enviarReporteTecnico()" class="btn btn-primary"><i class="fas fa-paper-plane"></i> ENVIAR AL CLIENTE</button>
+                <button onclick="document.getElementById('modal-reporte-tecnico').classList.add('oculto')" class="btn btn-outline" style="flex: 0.4;">Cancelar</button>
             </div>
         </div>
     </div>

@@ -455,7 +455,7 @@ export const verDetalleTrabajo = (id) => {
 
     // Control "CERRAR Y FACTURAR" button
     const btnCierre = document.getElementById('btnCierreAdmin');
-    if (t.estado === 'reporte_aprobado') {
+    if (t.estado === 'reporte_aprobado' || t.estado === 'evaluado_cliente') {
         btnCierre.classList.remove('oculto');
     } else {
         btnCierre.classList.add('oculto');
@@ -562,6 +562,7 @@ window.crearPedidoAdmin = async () => {
         await addDoc(collection(db, "trabajos"), {
             clienteId: clientId,
             clienteNombre: clientName,
+            categoria: servicio,
             servicio: servicio,
             descripcion: desc,
             urgencia: urgency,
