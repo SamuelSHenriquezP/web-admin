@@ -160,7 +160,6 @@ export const filtrarTrabajosPorEstado = async () => {
     modoConsultaActivo = `estado:${filtro}`;
     lastVisibleTrabajo = null;
     hayMasTrabajos = false;
-    actualizarBtnCargarMas();
 
     try {
         const snap = await getDocs(query(
@@ -252,7 +251,7 @@ const actualizarBtnCargarMas = () => {
 export const renderTrabajos = (lista = null) => {
     const table = document.getElementById('tabla-admin-trabajos');
     if (!table) return;
-    
+
     const data = lista ?? cacheTrabajos;
 
     table.innerHTML = data.length === 0 ?
@@ -261,9 +260,11 @@ export const renderTrabajos = (lista = null) => {
             let accion = '';
             // Botón de Ver Detalle (Ojo) siempre presente
             const btnVer = `<button class="btn btn-outline btn-small" onclick="verDetalleTrabajo('${t.id}')" title="Ver Detalles"><i class="fas fa-eye"></i></button>`;
-            
+
             if (t.estado === 'solicitado') {
                 accion = `<button class="btn btn-primary btn-small" onclick="abrirModalAsignar('${t.id}')">Asignar</button>`;
+            } else if (t.estado === 'esperando_cierre') {
+                accion = `<button class="btn btn-small" style="background:#0d9488;color:white;" onclick="marcarCompletado('${t.id}')"><i class="fas fa-check-double"></i> Completar</button>`;
             } else if (t.estado === 'completado' && !t.calificado) {
                 accion = `<button class="btn btn-warning btn-small" onclick="abrirModalCalificar('${t.id}', '${t.operarioId}')"><i class="fas fa-star"></i> Calificar</button>`;
             } else if (t.calificado) {
@@ -271,7 +272,7 @@ export const renderTrabajos = (lista = null) => {
             } else {
                 accion = `<span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-lock"></i> Gestionando</span>`;
             }
-            
+
             return `
             <tr>
                 <td><span class="badge badge-${t.estado ? t.estado.toLowerCase().split('_')[0] : 'solicitado'}">${escapeHtml((t.estado || 'SOLICITADO').toUpperCase())}</span></td>
@@ -442,6 +443,9 @@ export const verDetalleTrabajo = (id) => {
     document.getElementById('detJobServicio').innerText = t.servicio || t.categoria || 'General';
     document.getElementById('detJobOperario').innerText = t.operarioNombre || 'Sin técnico asignado';
     
+    const dirTextoElem = document.getElementById('detJobDireccion');
+    if (dirTextoElem) dirTextoElem.innerText = t.direccionText || 'No se especificó dirección escrita.';
+
     const badge = document.getElementById('detJobPrioridad');
     badge.innerText = (t.prioridad || 'Media').toUpperCase();
     badge.className = `badge badge-${(t.prioridad || 'media').toLowerCase()}`;
@@ -453,16 +457,112 @@ export const verDetalleTrabajo = (id) => {
     }
     document.getElementById('detJobFecha').innerText = fechaStr;
 
-    // Control "CERRAR Y FACTURAR" button
+    // Calcular tiempo de trabajo del operario
+    // Calcular tiempo de trabajo del operario
+    let tiempoTrabajoStr = 'N/A';
+    if (t.tiempoInicioTrabajo && (t.tiempoFinTrabajo || t.fechaCierreFacturacion)) {
+        const d1 = t.tiempoInicioTrabajo.toDate ? t.tiempoInicioTrabajo.toDate() : new Date(t.tiempoInicioTrabajo);
+        const tf = t.tiempoFinTrabajo || t.fechaCierreFacturacion;
+        const d2 = tf.toDate ? tf.toDate() : new Date(tf);
+        const diffMs = d2 - d1;
+        if (diffMs >= 0) {
+            const diffMin = Math.floor(diffMs / 60000);
+            const hours = Math.floor(diffMin / 60);
+            const mins = diffMin % 60;
+            tiempoTrabajoStr = `${hours}h ${mins}m`;
+        }
+    } else if (t.tiempoInicioTrabajo && !t.tiempoFinTrabajo && !t.fechaCierreFacturacion) {
+        tiempoTrabajoStr = 'Trabajando...';
+    }
+    const detJobTiempo = document.getElementById('detJobTiempo');
+    if (detJobTiempo) detJobTiempo.innerText = tiempoTrabajoStr;
+
+    // Control "MARCAR COMPLETADO" y "CERRAR Y FACTURAR" buttons
     const btnCierre = document.getElementById('btnCierreAdmin');
-    if (t.estado === 'reporte_aprobado' || t.estado === 'evaluado_cliente') {
-        btnCierre.classList.remove('oculto');
+    const btnCompletar = document.getElementById('btnCompletarAdmin');
+    if (t.estado === 'esperando_cierre') {
+        if (btnCompletar) btnCompletar.classList.remove('oculto');
+        if (btnCierre) btnCierre.classList.add('oculto');
+    } else if (t.estado === 'completado' || t.estado === 'evaluado_cliente') {
+        if (btnCompletar) btnCompletar.classList.add('oculto');
+        if (btnCierre) btnCierre.classList.remove('oculto');
     } else {
-        btnCierre.classList.add('oculto');
+        if (btnCompletar) btnCompletar.classList.add('oculto');
+        if (btnCierre) btnCierre.classList.add('oculto');
     }
 
     // Set map job ID
     document.getElementById('mapaJobId').value = t.id;
+
+
+
+    const containerReporte = document.getElementById('detJobReporteContainer');
+    const contenidoReporte = document.getElementById('detJobReporteContenido');
+
+    if (t.reporteTecnico) {
+        if (containerReporte) containerReporte.classList.remove('oculto');
+        const rep = t.reporteTecnico;
+        let html = `
+            <div style="margin-bottom: 8px;"><strong>Técnico Encargado:</strong> ${escapeHtml(rep.encargadoNombre || t.operarioNombre)}</div>
+            <div style="margin-bottom: 8px;"><strong>Cédula:</strong> ${escapeHtml(rep.encargadoCedula || 'N/D')}</div>
+        `;
+
+        if (rep.equipos && rep.equipos.length > 0) {
+            html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Equipos Intervenidos:</div>`;
+            rep.equipos.forEach(e => {
+                html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(e.equipoMarca)} ${escapeHtml(e.modelo)} (Contador: ${escapeHtml(e.contador)})</div>`;
+            });
+        }
+
+        if (rep.detallesTecnicos && rep.detallesTecnicos.length > 0) {
+            html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Detalles de la Intervención:</div>`;
+            rep.detallesTecnicos.forEach((d, i) => {
+                html += `<div style="margin-top: 8px; border-left: 2px solid var(--primary); padding-left: 8px;">
+                    <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">DIAGNÓSTICO ${i + 1}:</div>
+                    <div style="margin-bottom: 4px;">${escapeHtml(d.diagnostico)}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">SOLUCIÓN:</div>
+                    <div>${escapeHtml(d.solucion)}</div>
+                </div>`;
+            });
+        }
+
+        if (rep.insumos && rep.insumos.length > 0) {
+            html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Repuestos e Insumos:</div>`;
+            rep.insumos.forEach(ins => {
+                html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(ins.cantidad)}x ${escapeHtml(ins.descripcion)}</div>`;
+            });
+        }
+
+        if (rep.costoEmpresa || rep.costoTecnico) {
+            html += `<div style="margin-top: 12px; font-weight: bold;">Costos liquidados: $${escapeHtml(rep.costoEmpresa || 0)} (Empresa) / $${escapeHtml(rep.costoTecnico || 0)} (Técnico)</div>`;
+        }
+
+        if (t.evaluacionCliente) {
+            const evalData = t.evaluacionCliente;
+            let starHtml = '';
+            for (let i = 0; i < 5; i++) {
+                starHtml += `<i class="${i < evalData.estrellas ? 'fas' : 'far'} fa-star"></i>`;
+            }
+            html += `<div style="margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                 <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px;">CALIFICACIÓN DEL CLIENTE:</div>
+                 <div style="color: #f59e0b; margin-bottom: 4px;">${starHtml}</div>
+                 <div style="font-style: italic; color: var(--text-muted);">"${escapeHtml(evalData.comentario || 'Sin comentario')}"</div>
+             </div>`;
+        } else if (t.estado === 'revision_cliente') {
+            html += `<div style="margin-top: 16px; padding: 8px; background: #FEFCE8; color: #854D0E; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                 <i class="fas fa-clock"></i> Pendiente de aprobación por el cliente...
+             </div>`;
+        } else if (t.reporteRechazado) {
+            html += `<div style="margin-top: 16px; padding: 8px; background: #FEF2F2; color: #991B1B; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                 <i class="fas fa-times-circle"></i> El cliente ha rechazado este reporte. El técnico debe generarlo de nuevo.
+             </div>`;
+        }
+
+        if (contenidoReporte) contenidoReporte.innerHTML = html;
+    } else {
+        if (containerReporte) containerReporte.classList.add('oculto');
+        if (contenidoReporte) contenidoReporte.innerHTML = '';
+    }
 
     document.getElementById('modal-detalle-trabajo').classList.remove('oculto');
 };
@@ -518,12 +618,15 @@ window.verDetalleTrabajo = verDetalleTrabajo;
 window.confirmarAsignacion = confirmarAsignacion;
 window.abrirModalAsignar = abrirModalAsignar;
 window.cargarDatosBase = cargarDatosBase;
+let adminCrearMap = null;
+
 window.abrirModalNuevoPedido = (id) => {
     const clientData = cacheClientes.find(c => c.id === id);
     const nombre = clientData ? clientData.nombre : '';
     document.getElementById('padminClientId').value = id;
     document.getElementById('padminClientName').innerText = nombre;
     document.getElementById('padminDesc').value = '';
+    document.getElementById('padminDirTexto').value = '';
 
     // Poblar selector de operarios desde el cache
     const select = document.getElementById('padminOperario');
@@ -535,6 +638,21 @@ window.abrirModalNuevoPedido = (id) => {
     select.innerHTML = options;
 
     document.getElementById('modal-nuevo-pedido-admin').classList.remove('oculto');
+    
+    // Initialize map
+    if (!adminCrearMap) {
+        setTimeout(() => {
+            adminCrearMap = L.map('mapaAdminCrearView').setView([10.3910, -75.4794], 13); // Default Cartagena
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminCrearMap);
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    adminCrearMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
+                }, () => {});
+            }
+        }, 300);
+    } else {
+        setTimeout(() => adminCrearMap.invalidateSize(), 300);
+    }
 };
 
 window.crearPedidoAdmin = async () => {
@@ -558,6 +676,14 @@ window.crearPedidoAdmin = async () => {
     const opNombre = opData ? opData.nombre : null;
     const estaAsignado = !!opId;
 
+    const dirTexto = document.getElementById('padminDirTexto').value.trim();
+    let lat = 10.3910, lng = -75.4794;
+    if (adminCrearMap) {
+        const center = adminCrearMap.getCenter();
+        lat = center.lat;
+        lng = center.lng;
+    }
+
     try {
         await addDoc(collection(db, "trabajos"), {
             clienteId: clientId,
@@ -565,6 +691,9 @@ window.crearPedidoAdmin = async () => {
             categoria: servicio,
             servicio: servicio,
             descripcion: desc,
+            direccionText: dirTexto,
+            lat: lat,
+            lng: lng,
             urgencia: urgency,
             estado: estaAsignado ? 'asignado' : 'solicitado',
             operarioId: opId || null,
@@ -603,16 +732,16 @@ export const verDetalleUsuario = (uid, rol) => {
         <div style="display: grid; gap: 15px;">
             <div style="background: var(--bg-app); padding: 15px; border-radius: 12px;">
                 <small style="color: var(--text-muted); display: block; margin-bottom: 5px;">Nombre / Razón Social</small>
-                <strong>${user.nombre}</strong>
+                <strong>${escapeHtml(user.nombre)}</strong>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div>
                      <small style="color: var(--text-muted); display: block; margin-bottom: 5px;">Correo</small>
-                     <span style="font-size: 13px;">${user.email}</span>
+                     <span style="font-size: 13px;">${escapeHtml(user.email)}</span>
                 </div>
                 <div>
                      <small style="color: var(--text-muted); display: block; margin-bottom: 5px;">Teléfono</small>
-                     <span style="font-size: 13px;">${user.telefono || 'No reg.'}</span>
+                     <span style="font-size: 13px;">${escapeHtml(user.telefono || 'No reg.')}</span>
                 </div>
             </div>
     `;
@@ -730,9 +859,12 @@ export const guardarEdicion = async () => {
     const btn = document.getElementById('btnGuardarEdit');
     const original = btn.innerHTML;
 
+    const nombre = document.getElementById('editNombre').value.trim();
+    if (!nombre) return showToast("El nombre no puede estar vacío.", "error");
+
     const payload = {
-        nombre: document.getElementById('editNombre').value,
-        telefono: document.getElementById('editTelefono').value
+        nombre,
+        telefono: document.getElementById('editTelefono').value.trim()
     };
     const pass = document.getElementById('editPass').value;
     if (pass) payload.password = pass;
@@ -810,37 +942,56 @@ export const crearOperario = async () => {
     const btn = document.getElementById('btnCrearOp');
     const originalText = btn.innerHTML;
 
-    const nombre = document.getElementById('opNom').value;
-    const email = document.getElementById('opMail').value;
+    const nombre = document.getElementById('opNom').value.trim();
+    const email = document.getElementById('opMail').value.trim();
     const password = document.getElementById('opPass').value;
-    const capacidades = document.getElementById('opCap').value;
-    const telefono = document.getElementById('opTel').value;
-    const contrato = document.getElementById('opContrato').value;
+    
+    // Nuevos campos operario
+    const cedula = document.getElementById('opCedula').value.trim();
+    const telefono1 = document.getElementById('opTel1').value.trim();
+    const telefono2 = document.getElementById('opTel2').value.trim();
+    const tipoContrato = document.getElementById('opTipoContrato').value; // 'Por servicio' o 'Fijo'
+    
+    let fechaContratacion = "";
+    let horarioTrabajo = "";
+    if (tipoContrato === 'Fijo') {
+        fechaContratacion = document.getElementById('opContrato').value;
+        horarioTrabajo = document.getElementById('opHorario').value.trim();
+    }
 
-    if (!nombre || !email || !password) return showToast("Llena los datos básicos", "error");
+    const capacidades = document.getElementById('opCap').value;
+
+    if (!nombre || !email || !password) return showToast("Nombre, Email y Contraseña requeridos", "error");
 
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
     try {
-        const result = await fn({
-            nombre, email, password, telefono,
-            fechaContratacion: contrato,
+        const payload = {
+            nombre, email, password,
+            cedula, 
+            telefono1, 
+            telefono2,
+            telefono: telefono1, // Fallback legacy
+            tipoContrato,
+            fechaContratacion,
+            horarioTrabajo,
             capacidades: [capacidades],
             activo: true
-        });
+        };
+
+        const result = await fn(payload);
         showToast("Técnico registrado", "success");
         document.getElementById('modal-nuevo-op').classList.add('oculto');
 
         cacheEquipo.push({
             id: result.data.uid,
-            nombre, email, rol: 'operario',
-            capacidades: [capacidades],
-            telefono, fechaContratacion: contrato,
-            activo: true, calificacion: 0, totalVotos: 0, sumaPuntos: 0
+            rol: 'operario',
+            calificacion: 0, totalVotos: 0, sumaPuntos: 0,
+            ...payload
         });
         renderEquipo();
-    } catch (e) { 
+    } catch (e) {
         console.error("Error al crear operario:", e);
-        showToast("Error: " + (e.message || "Falla en el servidor"), "error"); 
+        showToast("Error: " + (e.message || "Falla en el servidor"), "error");
     }
     finally { btn.innerHTML = originalText; }
 };
@@ -850,31 +1001,82 @@ export const crearClienteAdmin = async () => {
     const btn = document.getElementById('btnCrearCliAdmin');
     const originalText = btn.innerHTML;
 
-    const nombre = document.getElementById('cliNom').value.trim();
+    const tipoPersona = document.getElementById('cliTipoPersona').value; // 'Empresa' o 'Natural'
+    let nombre = "";
+    let razonSocial = "";
+    let nit = "";
+    let repLegal = "";
+    let cedulaRep = "";
+    let cedulaNatural = "";
+
+    if (tipoPersona === 'Empresa') {
+        razonSocial = document.getElementById('cliRazonSocial').value.trim();
+        nit = document.getElementById('cliNit').value.trim();
+        repLegal = document.getElementById('cliRepLegal').value.trim();
+        cedulaRep = document.getElementById('cliCedulaRep').value.trim();
+        nombre = razonSocial; 
+    } else {
+        nombre = document.getElementById('cliNombreCompleto').value.trim();
+        cedulaNatural = document.getElementById('cliCedula').value.trim();
+    }
+
     const email = document.getElementById('cliMail').value.trim();
     const password = document.getElementById('cliPass').value;
     const contacto = document.getElementById('cliCont').value.trim();
-    const telefono = document.getElementById('cliTel').value.trim();
-    const direccion = document.getElementById('cliDir').value.trim();
+    const telefono1 = document.getElementById('cliTel1').value.trim();
+    const telefono2 = document.getElementById('cliTel2').value.trim();
+    
+    // Ubicación
+    const ciudad = document.getElementById('cliCiudad').value.trim();
+    const barrio = document.getElementById('cliBarrio').value.trim();
+    const direccionDetallada = document.getElementById('cliDir').value.trim();
+    const direccionLegacy = `${ciudad}, ${barrio}, ${direccionDetallada}`;
 
-    if (!nombre || !email || !password) return showToast("Nombre, Email y Contraseña requeridos", "error");
+    // Relación
+    const tipoRelacion = document.getElementById('cliTipoRelacion').value; // 'Demanda' o 'Alquiler'
+    let equiposAlquilados = "";
+    let valorMensual = "";
+    let copiasFavor = "";
+    let valorCopiaExtra = "";
+    let estadoCuenta = "";
+
+    if (tipoRelacion === 'Alquiler') {
+        equiposAlquilados = document.getElementById('cliEquiposAlquilados').value.trim();
+        valorMensual = parseFloat(document.getElementById('cliValorMensual').value) || 0;
+        copiasFavor = parseInt(document.getElementById('cliCopiasFavor').value) || 0;
+        valorCopiaExtra = parseFloat(document.getElementById('cliValorCopiaExtra').value) || 0;
+        estadoCuenta = document.getElementById('cliEstadoCuenta').value;
+    }
+
+    if (!nombre || !email || !password) return showToast("Nombre/Razón Social, Email y Contraseña requeridos", "error");
 
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
     try {
-        const result = await fn({ nombre, email, password, contacto, telefono, direccion, activo: true });
+        const payload = {
+            nombre, email, password,
+            tipoPersona,
+            razonSocial, nit, repLegal, cedulaRep, cedulaNatural,
+            contacto, telefono1, telefono2, telefono: telefono1, // legacy
+            ciudad, barrio, direccionDetallada, direccion: direccionLegacy, // legacy
+            tipoRelacion,
+            equiposAlquilados, valorMensual, copiasFavor, valorCopiaExtra, estadoCuenta,
+            activo: true
+        };
+
+        const result = await fn(payload);
         showToast("Cliente registrado", "success");
         document.getElementById('modal-nuevo-cliente').classList.add('oculto');
 
         cacheClientes.push({
             id: result.data.uid,
-            nombre, email, rol: 'cliente',
-            contacto, telefono, direccion,
-            activo: true, totalServicios: 0
+            rol: 'cliente',
+            totalServicios: 0,
+            ...payload
         });
         renderClientes();
-    } catch (e) { 
+    } catch (e) {
         console.error("Error al crear cliente:", e);
-        showToast("Error: " + (e.message || "Falla en el servidor"), "error"); 
+        showToast("Error: " + (e.message || "Falla en el servidor"), "error");
     }
     finally { btn.innerHTML = originalText; }
 };
@@ -908,7 +1110,7 @@ export const abrirMapaAdmin = () => {
     }
 
     currentMarker = L.marker([lat, lng], { draggable: true }).addTo(leafletMap);
-    
+
     // Fix leaflet grey box if inside disabled/hidden modal
     setTimeout(() => {
         leafletMap.invalidateSize();
@@ -942,10 +1144,27 @@ export const guardarUbicacionMapa = async () => {
     }
 };
 
+export const marcarCompletado = async (jobId) => {
+    if (!jobId) return;
+    if (!confirm('¿Confirma marcar este trabajo como COMPLETADO? El técnico ya no podrá modificarlo.')) return;
+
+    try {
+        await updateDoc(doc(db, 'trabajos', jobId), {
+            estado: 'completado',
+            tiempoCompletado: new Date()
+        });
+        patchCache(cacheTrabajos, jobId, { estado: 'completado' });
+        renderTrabajos();
+        showToast('Trabajo marcado como COMPLETADO.', 'success');
+        document.getElementById('modal-detalle-trabajo').classList.add('oculto');
+    } catch (e) {
+        showToast('Error al completar el trabajo: ' + e.message, 'error');
+    }
+};
+
 export const cerrarYFacturarJob = async () => {
-    const jobId = document.getElementById('detJobId').innerText; // Using snippet or getting from mapaJobId
     const realJobId = document.getElementById('mapaJobId').value;
-    
+
     if (!confirm("¿Confirma cerrar este trabajo de manera definitiva y enviarlo a facturación?")) return;
 
     const btn = document.getElementById('btnCierreAdmin');
@@ -954,10 +1173,10 @@ export const cerrarYFacturarJob = async () => {
 
     try {
         await updateDoc(doc(db, "trabajos", realJobId), {
-            estado: 'completado',
+            estado: 'cerrado',
             fechaCierreFacturacion: new Date()
         });
-        patchCache(cacheTrabajos, realJobId, { estado: 'completado' });
+        patchCache(cacheTrabajos, realJobId, { estado: 'cerrado' });
         renderTrabajos();
         showToast("TRABAJO CERRADO DEFINITIVAMENTE.", "success");
         document.getElementById('modal-detalle-trabajo').classList.add('oculto');
@@ -981,3 +1200,4 @@ window.crearClienteAdmin = crearClienteAdmin;
 window.abrirMapaAdmin = abrirMapaAdmin;
 window.guardarUbicacionMapa = guardarUbicacionMapa;
 window.cerrarYFacturarJob = cerrarYFacturarJob;
+window.marcarCompletado = marcarCompletado;

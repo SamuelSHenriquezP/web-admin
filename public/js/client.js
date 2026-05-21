@@ -33,22 +33,34 @@ export const escucharMisPedidos = (userId) => {
                 return;
             }
             clientJobs = snap.docs.map(d => ({ jobId: d.id, ...d.data() }));
-            
+
             listDiv.innerHTML = clientJobs.map(t => {
-                const badgeClass = `badge-${t.estado.split('_')[0]}`;
+                const badgeClass = `badge-${(t.estado || 'solicitado').split('_')[0]}`;
                 const hasOp = !!t.operarioNombre;
                 const isFinished = t.estado === 'evaluado_cliente' || t.estado === 'cerrado' || t.estado === 'completado';
-                
+
                 let extras = '';
-                
+
                 // Show Review Button if ready
                 if (t.estado === 'revision_cliente') {
                     extras += `
                     <div style="margin-top: 16px;">
                         <button onclick="abrirVistoBueno('${t.jobId}')" class="btn" style="background: var(--primary); color: white; width: 100%;"><i class="fas fa-file-signature"></i> REVISAR Y APROBAR EL SERVICIO</button>
                     </div>`;
+                } else if (isFinished && t.reporteTecnico) {
+                    extras += `
+                    <div style="margin-top: 16px;">
+                        <button onclick="abrirVistoBueno('${t.jobId}')" class="btn btn-outline" style="width: 100%; border-color: var(--primary); color: var(--primary);"><i class="fas fa-eye"></i> VER DIAGNÓSTICO APROBADO</button>
+                    </div>`;
                 }
-                
+
+                if ((t.estado === 'completado' || t.estado === 'cerrado') && !t.evaluacionCliente) {
+                    extras += `
+                    <div style="margin-top: 16px;">
+                        <button onclick="abrirCalificacion('${t.jobId}')" class="btn" style="background: #f59e0b; color: white; width: 100%;"><i class="fas fa-star"></i> CALIFICAR SERVICIO</button>
+                    </div>`;
+                }
+
                 // Show PIN if active
                 if (t.pinCode && !isFinished && t.estado !== 'revision_cliente') {
                     extras += `
@@ -89,12 +101,12 @@ window.abrirMapaCliente = () => {
 
     document.getElementById('cliDirTexto').value = '';
     document.getElementById('modal-mapa-cliente').classList.remove('oculto');
-    
+
     // Initialize map if not yet done
     if (!currentClientMap) {
         currentClientMap = L.map('mapaClienteView').setView([10.3910, -75.4794], 13); // Default Cartagena
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(currentClientMap);
-        
+
         // Try getting real location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -125,8 +137,10 @@ window.confirmarUbicacionCliente = async () => {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ENVIANDO...';
     btn.disabled = true;
 
-    // Generate random 4 digit PIN
-    const pinCode = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate cryptographically secure 4-digit PIN
+    const pinArr = new Uint32Array(1);
+    crypto.getRandomValues(pinArr);
+    const pinCode = (1000 + (pinArr[0] % 9000)).toString();
 
     try {
         await addDoc(collection(db, "trabajos"), {
@@ -157,23 +171,52 @@ window.confirmarUbicacionCliente = async () => {
 window.abrirVistoBueno = (jobId) => {
     const job = clientJobs.find(j => j.jobId === jobId);
     if (!job) return;
-    
+
     currentVbJobId = jobId;
     currentRating = 5;
-    window.actualizarEstrellasVb(5);
     document.getElementById('vbComentario').value = '';
-    
+
+    const isEvaluated = job.evaluacionCliente != null || job.estado !== 'revision_cliente';
+    if (isEvaluated) {
+        document.getElementById('vbSeccionAprobar').classList.add('oculto');
+        document.getElementById('vbSeccionSoloLectura').classList.remove('oculto');
+        const evalData = job.evaluacionCliente;
+        if (evalData) {
+            const estrellas = evalData.estrellas || 0;
+            let starHtml = '';
+            for (let i = 0; i < 5; i++) {
+                starHtml += `<i class="${i < estrellas ? 'fas' : 'far'} fa-star"></i>`;
+            }
+            document.getElementById('vbSoloLecturaEstrellas').innerHTML = starHtml;
+            document.getElementById('vbSoloLecturaComentario').innerText = evalData.comentario || 'Sin comentario';
+        } else {
+            document.getElementById('vbSoloLecturaEstrellas').innerHTML = '<span style="font-size: 14px; color: var(--text-muted);">Aún no calificado</span>';
+            document.getElementById('vbSoloLecturaComentario').innerText = '';
+        }
+    } else {
+        document.getElementById('vbSeccionAprobar').classList.remove('oculto');
+        document.getElementById('vbSeccionSoloLectura').classList.add('oculto');
+    }
+
     // Render report summary
     const rep = job.reporteTecnico || {};
     let html = `
         <div style="margin-bottom: 8px;"><strong>Técnico Encargado:</strong> ${escapeHtml(rep.encargadoNombre || job.operarioNombre)}</div>
         <div style="margin-bottom: 8px;"><strong>Cédula:</strong> ${escapeHtml(rep.encargadoCedula || 'N/D')}</div>
     `;
-    
+
+    if (rep.equipos && rep.equipos.length > 0) {
+        html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Equipos Intervenidos:</div>`;
+        rep.equipos.forEach(e => {
+            html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(e.equipoMarca)} ${escapeHtml(e.modelo)} (Contador: ${escapeHtml(e.contador)})</div>`;
+        });
+    }
+
     if (rep.detallesTecnicos && rep.detallesTecnicos.length > 0) {
+        html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Detalles de la Intervención:</div>`;
         rep.detallesTecnicos.forEach((d, i) => {
-            html += `<div style="margin-top: 12px; border-left: 2px solid var(--primary); padding-left: 8px;">
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">DIAGNÓSTICO ${i+1}:</div>
+            html += `<div style="margin-top: 8px; border-left: 2px solid var(--primary); padding-left: 8px;">
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">DIAGNÓSTICO ${i + 1}:</div>
                 <div style="margin-bottom: 4px;">${escapeHtml(d.diagnostico)}</div>
                 <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">SOLUCIÓN:</div>
                 <div>${escapeHtml(d.solucion)}</div>
@@ -181,23 +224,38 @@ window.abrirVistoBueno = (jobId) => {
         });
     }
 
-    if (rep.costoEmpresa || rep.costoTecnico) {
-         html += `<div style="margin-top: 12px; font-weight: bold;">Costos liquidados: $${escapeHtml(rep.costoEmpresa)} (Empresa) / $${escapeHtml(rep.costoTecnico)} (Técnico)</div>`;
+    if (rep.insumos && rep.insumos.length > 0) {
+        html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Repuestos e Insumos:</div>`;
+        rep.insumos.forEach(ins => {
+            html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(ins.cantidad)}x ${escapeHtml(ins.descripcion)}</div>`;
+        });
     }
-    
+
+    if (rep.costoEmpresa || rep.costoTecnico) {
+        html += `<div style="margin-top: 12px; font-weight: bold;">Costos liquidados: $${escapeHtml(rep.costoEmpresa || 0)} (Empresa) / $${escapeHtml(rep.costoTecnico || 0)} (Técnico)</div>`;
+    }
+
     document.getElementById('resumenReporteTecnico').innerHTML = html;
     document.getElementById('modal-visto-bueno').classList.remove('oculto');
 };
 
-window.actualizarEstrellasVb = (val) => {
+window.abrirCalificacion = (jobId) => {
+    currentVbJobId = jobId;
+    currentRating = 5;
+    window.actualizarEstrellasCalif(5);
+    document.getElementById('califComentario').value = '';
+    document.getElementById('modal-calificacion').classList.remove('oculto');
+};
+
+window.actualizarEstrellasCalif = (val) => {
     currentRating = val;
-    const stars = document.getElementById('estrellasVb').children;
+    const stars = document.getElementById('estrellasCalif').children;
     for (let i = 0; i < stars.length; i++) {
         if (i < val) {
             stars[i].classList.replace('fa-star', 'fa-star'); // Solid
-            stars[i].style.color = '#FACC15'; 
+            stars[i].style.color = '#FACC15';
             stars[i].classList.remove('far'); // Ensure it's solid
-            stars[i].classList.add('fas'); 
+            stars[i].classList.add('fas');
         } else {
             stars[i].style.color = 'var(--border)';
             stars[i].classList.remove('fas');
@@ -207,10 +265,10 @@ window.actualizarEstrellasVb = (val) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('estrellasVb')?.addEventListener('click', (e) => {
+    document.getElementById('estrellasCalif')?.addEventListener('click', (e) => {
         if (e.target.tagName === 'I') {
             const val = parseInt(e.target.getAttribute('data-val'));
-            window.actualizarEstrellasVb(val);
+            window.actualizarEstrellasCalif(val);
         }
     });
 });
@@ -224,18 +282,70 @@ window.enviarAprobacionCliente = async () => {
 
     try {
         await updateDoc(doc(db, "trabajos", currentVbJobId), {
-            estado: 'evaluado_cliente',
-            reporteAprobado: true,
-            evaluacionCliente: {
-                estrellas: currentRating,
-                comentario: document.getElementById('vbComentario').value.trim(),
-                fechaEvaluacion: serverTimestamp()
-            }
+            estado: 'trabajo_aprobado',
+            reporteAprobado: true
         });
-        showToast("¡Gracias por tu evaluación!", "success");
+        showToast("¡Diagnóstico aprobado! El técnico procederá con el trabajo.", "success");
         document.getElementById('modal-visto-bueno').classList.add('oculto');
     } catch (e) {
         showToast("Error aprobando el reporte: " + e.message, "error");
+    } finally {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+    }
+};
+
+window.enviarCalificacionCliente = async () => {
+    if (!currentVbJobId) return;
+    const btn = document.getElementById('btnEnviarCalif');
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ENVIANDO...';
+    btn.disabled = true;
+
+    try {
+        const docRef = doc(db, "trabajos", currentVbJobId);
+        const docSnap = await getDoc(docRef);
+        const currentData = docSnap.data();
+
+        const updateData = {
+            evaluacionCliente: {
+                estrellas: currentRating,
+                comentario: document.getElementById('califComentario').value.trim(),
+                fechaEvaluacion: serverTimestamp()
+            }
+        };
+
+        if (currentData.estado !== 'cerrado') {
+            updateData.estado = 'evaluado_cliente';
+        }
+
+        await updateDoc(docRef, updateData);
+        showToast("¡Gracias por tu evaluación!", "success");
+        document.getElementById('modal-calificacion').classList.add('oculto');
+    } catch (e) {
+        showToast("Error guardando la calificación: " + e.message, "error");
+    } finally {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+    }
+};
+
+window.rechazarReporteCliente = async () => {
+    if (!currentVbJobId) return;
+    const btn = document.getElementById('btnRechazarReporte');
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> RECHAZANDO...';
+    btn.disabled = true;
+
+    try {
+        await updateDoc(doc(db, "trabajos", currentVbJobId), {
+            estado: 'en_sitio',
+            reporteRechazado: true
+        });
+        showToast("Reporte rechazado. El técnico debe generarlo de nuevo.", "success");
+        document.getElementById('modal-visto-bueno').classList.add('oculto');
+    } catch (e) {
+        showToast("Error al rechazar el reporte: " + e.message, "error");
     } finally {
         btn.innerHTML = origText;
         btn.disabled = false;

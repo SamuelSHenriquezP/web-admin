@@ -29,7 +29,64 @@
     --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+
+    /* THEME DEFAULTS */
+    --primary-rgb: 20, 174, 225;
+    --theme-color: var(--primary);
+    --theme-color-rgb: var(--primary-rgb);
+    --theme-text-light: var(--text-light);
+    --bg-accent: rgba(var(--primary-rgb), 0.08);
 }
+
+/* --- THEMES --- */
+/* Admin: Amarillo Neón / Sol (#f3e72e) */
+body.theme-admin {
+    --theme-color: #f3e72e;
+    --theme-color-rgb: 243, 231, 46;
+    --theme-text-light: var(--text-main); /* El texto será oscuro sobre este amarillo claro */
+    --bg-accent: rgba(243, 231, 46, 0.3); /* Un poco más fuerte el fondo acentuado */
+    --bg-page: #f4f7f9;
+    --header-bg: #ffffff;
+    --header-text: var(--text-main);
+}
+
+/* Ajustes de Contraste para el Amarillo (Sin cambiar el color) */
+body.theme-admin .view i, 
+body.theme-admin .header-cliente i, 
+body.theme-admin .topbar i, 
+body.theme-admin .sidebar i,
+body.theme-admin .nav-btn i:not(.activo i) {
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); /* Sombra para que los íconos resalten sobre el blanco */
+}
+
+/* Cliente: Azul (#14aee1) */
+body.theme-cliente {
+    --theme-color: #14aee1;
+    --theme-color-rgb: 20, 174, 225;
+    --theme-text-light: var(--text-light);
+    --bg-accent: rgba(20, 174, 225, 0.1);
+    --bg-page: #ffffff; 
+    --header-bg: #ffffff;
+    --header-text: var(--text-main);
+}
+
+/* Operario: Rosa fucsia vibrante (#e71e65) */
+body.theme-operario {
+    --theme-color: #e71e65;
+    --theme-color-rgb: 231, 30, 101;
+    --theme-text-light: var(--text-light);
+    --bg-accent: rgba(231, 30, 101, 0.12);
+    --bg-page: #f4f7f9; 
+    --header-bg: #ffffff;
+    --header-text: var(--text-main);
+}
+
+/* General Icon Theming */
+.view i, .header-cliente i, .topbar i, .sidebar i { 
+    color: var(--theme-color); 
+    transition: color 0.3s ease;
+}
+.btn i, .badge i, .modal-content i, .btn-salir i { color: inherit !important; }
 
 * {
     margin: 0;
@@ -39,10 +96,11 @@
 }
 
 body {
-    background-color: var(--bg-app);
+    background-color: var(--bg-page, var(--bg-app));
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    transition: background-color 0.3s ease;
 }
 
 /* Animations & Transitions */
@@ -102,7 +160,7 @@ body {
     justify-content: center;
     gap: 8px;
 }
-.logo-auth span { color: var(--primary); }
+.logo-auth span { color: var(--text-main); }
 .logo-auth img { 
     height: 48px !important; 
     max-height: 48px !important;
@@ -142,7 +200,7 @@ body {
     gap: 8px;
     border-bottom: 1px solid var(--border);
 }
-.sidebar-header span { color: var(--primary); }
+.sidebar-header span { color: var(--text-main); }
 .brand-logo {
     height: 32px !important;
     max-height: 32px !important;
@@ -164,8 +222,8 @@ body {
     display: inline-block;
 }
 .pro-badge {
-    background: #071224;
-    color: var(--text-light);
+    background: var(--theme-color);
+    color: var(--theme-text-light);
     font-size: 11px;
     padding: 2px 6px;
     border-radius: var(--radius-sm);
@@ -198,12 +256,16 @@ body {
     gap: 12px;
 }
 
-.nav-btn i { font-size: 16px; width: 24px; text-align: center; }
+.nav-btn i { font-size: 16px; width: 24px; text-align: center; color: var(--theme-color); }
 .nav-btn:hover { background: var(--bg-app); color: var(--text-main); }
 .nav-btn.activo { 
-    background: rgba(20, 174, 225, 0.08); 
-    color: var(--primary); 
+    background: var(--theme-color); 
+    color: var(--theme-text-light); 
     font-weight: 600;
+}
+.nav-btn.activo i {
+    color: var(--theme-text-light);
+    filter: none;
 }
 
 .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
@@ -214,7 +276,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    background: var(--bg-app);
+    background: var(--bg-page, var(--bg-app));
+    transition: background-color 0.3s ease;
 }
 
 .topbar {
@@ -279,8 +342,8 @@ body {
 }
 .input-premium:focus {
     background: var(--bg-card);
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(20, 174, 225, 0.15);
+    border-color: var(--theme-color);
+    box-shadow: 0 0 0 2px rgba(var(--theme-color-rgb), 0.15);
 }
 
 .btn {
@@ -304,7 +367,7 @@ body {
 
 .btn-primary { background: var(--primary); color: var(--text-light); }
 .btn-secondary { background: var(--secondary); color: var(--text-light); }
-.btn-warning { background: var(--warning); color: #854d0e; }
+.btn-warning { background: var(--warning); color: var(--text-main); }
 
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
 .btn-outline:hover { background: var(--bg-app); color: var(--text-main); }
@@ -312,17 +375,19 @@ body {
 .btn-small { width: auto; padding: 8px 16px; font-size: 13px; border-radius: var(--radius-md); }
 
 .btn-salir {
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-    padding: 8px 12px;
+    background: var(--theme-color);
+    color: var(--theme-text-light);
+    border: none;
+    padding: 8px 16px;
     border-radius: var(--radius-md);
     font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
 }
 .btn-salir:hover {
-    background: #fef2f2;
-    color: #ef4444;
-    border-color: #fca5a5;
+    filter: brightness(0.9);
+    transform: translateY(-1px);
 }
 
 /* Tables */
@@ -362,10 +427,10 @@ body {
     gap: 6px;
     letter-spacing: 0.5px;
 }
-.badge-solicitado { background: #fdf2f8; color: var(--secondary); border: 1px solid #fbcfe8; }
-.badge-asignado { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
-.badge-completado { background: #f0f9ff; color: var(--primary); border: 1px solid #bae6fd; }
-.badge-pendiente { background: #fffbeb; color: #92400e; border: 1px solid #fef3c7; }
+.badge-solicitado { background: var(--theme-color); color: var(--theme-text-light); border: none; font-weight: 700; }
+.badge-asignado { background: var(--theme-color); color: var(--theme-text-light); border: none; font-weight: 700; opacity: 0.9; }
+.badge-completado { background: var(--theme-color); color: var(--theme-text-light); border: none; font-weight: 800; }
+.badge-pendiente { background: var(--bg-app); color: var(--text-muted); border: 1px solid var(--border); }
 
 /* Toast Container */
 #toast-container {
@@ -434,13 +499,14 @@ body {
 
 /* Client View Specifics */
 .header-cliente {
-    background: var(--bg-card);
+    background: var(--header-bg, var(--bg-card));
     padding: 16px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: var(--text-main);
+    color: var(--header-text, var(--text-main));
     border-bottom: 1px solid var(--border);
+    transition: all 0.3s ease;
 }
 .header-cliente .logo-auth {
     color: var(--text-main) !important; 

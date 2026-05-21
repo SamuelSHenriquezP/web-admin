@@ -16,7 +16,14 @@ export const showToast = (message, type = 'success') => {
 // --- CONTROL VISUAL ---
 export const showView = (id) => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+
+    // Manejo de Temas Dinámicos
+    document.body.classList.remove('theme-admin', 'theme-cliente', 'theme-operario');
+    if (id === 'view-admin') document.body.classList.add('theme-admin');
+    else if (id === 'view-cliente') document.body.classList.add('theme-cliente');
+    else if (id === 'view-operario') document.body.classList.add('theme-operario');
 };
 
 export const cambiarPestana = (id) => {

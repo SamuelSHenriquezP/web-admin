@@ -43,12 +43,12 @@ export const escucharMisTrabajosOperario = (user) => {
         listDiv.innerHTML = todas.map(t => {
             const badgeClass = `badge-${t.estado.split('_')[0]}`;
             const esCompletado = t.estado === 'completado';
-            
+
             // Dynamic styling based on state
             let iconClass = 'fas fa-tools';
             let iconColor = '#ca8a04';
             let accentColor = '#facc15';
-            
+
             if (esCompletado) {
                 iconClass = 'fas fa-check-double'; iconColor = '#16a34a'; accentColor = '#22c55e';
             } else if (t.estado === 'en_camino') {
@@ -62,9 +62,9 @@ export const escucharMisTrabajosOperario = (user) => {
             }
 
             let actionButtons = '';
-            
+
             if (t.estado === 'asignado') {
-                actionButtons = `<button onclick="iniciarRutaOperario('${t.jobId}', ${t.lat || null}, ${t.lng || null})" class="btn" style="background: #14aee1; color: white;"><i class="fas fa-route"></i> INICIAR RUTA</button>`;
+                actionButtons = `<button onclick="iniciarRutaOperario('${t.jobId}', ${t.lat || null}, ${t.lng || null})" class="btn" style="background: #f59e0b; color: white;"><i class="fas fa-route"></i> INICIAR RUTA</button>`;
             } else if (t.estado === 'en_camino') {
                 actionButtons = `
                 <div style="display: flex; gap: 10px;">
@@ -72,11 +72,11 @@ export const escucharMisTrabajosOperario = (user) => {
                     <button onclick="retrasoOperario('${t.jobId}')" class="btn" style="background: #f3e72e; color: #1e293b; flex: 1;"><i class="fas fa-clock"></i> RETRASO</button>
                 </div>`;
             } else if (t.estado === 'en_sitio' || t.estado === 'retrasado') {
-                actionButtons = `<button onclick="abrirReporteOperario('${t.jobId}')" class="btn" style="background: #14aee1; color: white;"><i class="fas fa-clipboard-check"></i> FINALIZAR REPORTE</button>`;
+                actionButtons = `<button onclick="abrirReporteOperario('${t.jobId}')" class="btn" style="background: #f59e0b; color: white;"><i class="fas fa-clipboard-check"></i> FINALIZAR REPORTE</button>`;
             } else if (esCompletado) {
                 actionButtons = `<div style="color: #22c55e; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i class="fas fa-check-circle" style="font-size: 18px;"></i> Tarea Completada</div>`;
             } else {
-                 actionButtons = `<div style="color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="fas fa-spinner fa-spin"></i> En revisión por el cliente...</div>`;
+                actionButtons = `<div style="color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="fas fa-spinner fa-spin"></i> En revisión por el cliente...</div>`;
             }
 
             const estadoFooter = `<div style="margin-top: 16px;">${actionButtons}</div>`;
@@ -114,7 +114,7 @@ export const escucharMisTrabajosOperario = (user) => {
     const unsubCompletados = onSnapshot(
         query(collection(db, "trabajos"), where("operarioId", "==", user.uid), where("estado", "==", "completado"), orderBy("creadoEn", "desc"), limit(5)),
         (snap) => { tareasCompletadas = snap.docs.map(d => ({ jobId: d.id, ...d.data() })); renderOperario(); },
-        () => {}
+        () => { }
     );
 
     unsubOperario = () => { unsubActivos(); unsubCompletados(); };
@@ -127,14 +127,14 @@ window.iniciarRutaOperario = async (jobId, lat, lng) => {
     } else {
         showToast("No se proveyeron coordenadas precisas para este pedido.", "warning");
     }
-    
+
     try {
         await updateDoc(doc(db, "trabajos", jobId), {
             estado: 'en_camino',
             tiempoEnCamino: serverTimestamp()
         });
         showToast("Ruta iniciada.", "success");
-    } catch(e) {
+    } catch (e) {
         showToast("Error: " + e.message, "error");
     }
 };
@@ -150,12 +150,12 @@ window.verificarPinOperario = async () => {
     const input = document.getElementById('pinIngresado').value.trim();
     const expected = document.getElementById('pinExpected').value;
     const jobId = document.getElementById('pinJobId').value;
-    
+
     if (input !== expected) {
         showToast("PIN Incorrecto. Asegúrate de pedirle el código de 4 dígitos al cliente.", "error");
         return;
     }
-    
+
     const btn = document.getElementById('btnVerificarPin');
     const origText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> VERIFICANDO...';
@@ -168,7 +168,7 @@ window.verificarPinOperario = async () => {
         });
         document.getElementById('modal-pin-operario').classList.add('oculto');
         showToast("¡Llegada confirmada con éxito!", "success");
-    } catch(e) {
+    } catch (e) {
         showToast("Error: " + e.message, "error");
     } finally {
         btn.innerHTML = origText;
@@ -180,7 +180,7 @@ window.retrasoOperario = async (jobId) => {
     try {
         await updateDoc(doc(db, "trabajos", jobId), { estado: 'retrasado' });
         showToast("Reportado como retrasado.", "warning");
-    } catch(e) { showToast("Error: " + e.message, "error"); }
+    } catch (e) { showToast("Error: " + e.message, "error"); }
 };
 
 // Formulario Dinámico de Reporte Técnico
@@ -190,7 +190,7 @@ window.agregarFila = (tipo) => {
     const container = document.getElementById(`rep${tipo.charAt(0).toUpperCase() + tipo.slice(1)}Container`);
     const id = reportRowCounters[tipo]++;
     let html = '';
-    
+
     if (tipo === 'equipos') {
         html = `
         <div id="row-${tipo}-${id}" style="display: flex; gap: 8px; margin-bottom: 8px;">
@@ -214,7 +214,7 @@ window.agregarFila = (tipo) => {
             <button onclick="document.getElementById('row-${tipo}-${id}').remove()" class="btn btn-outline" style="width:auto; border-color:var(--secondary); color:var(--secondary); padding: 0 12px;"><i class="fas fa-trash"></i></button>
         </div>`;
     }
-    
+
     container.insertAdjacentHTML('beforeend', html);
 };
 
@@ -223,12 +223,12 @@ window.abrirReporteOperario = (jobId) => {
     document.getElementById('repCedula').value = '';
     document.getElementById('repCostoEmpresa').value = '';
     document.getElementById('repCostoTecnico').value = '';
-    
+
     // Clear containers
     document.getElementById('repEquiposContainer').innerHTML = '';
     document.getElementById('repDetallesContainer').innerHTML = '';
     document.getElementById('repInsumosContainer').innerHTML = '';
-    
+
     // Add 1 default row for each
     window.agregarFila('equipos');
     window.agregarFila('detalles');
@@ -281,7 +281,7 @@ window.enviarReporteTecnico = async () => {
         equipos,
         detallesTecnicos,
         insumos,
-        costoServicio: parseFloat(document.getElementById('repCostoEmpresa').value.trim()) || 0.0,
+        costoEmpresa: parseFloat(document.getElementById('repCostoEmpresa').value.trim()) || 0.0,
         costoTecnico: parseFloat(document.getElementById('repCostoTecnico').value.trim()) || 0.0,
         fechaEmision: serverTimestamp()
     };
@@ -299,7 +299,7 @@ window.enviarReporteTecnico = async () => {
         });
         document.getElementById('modal-reporte-tecnico').classList.add('oculto');
         showToast("Reporte finalizado y enviado al cliente con éxito.", "success");
-    } catch(e) {
+    } catch (e) {
         showToast("Error: " + e.message, "error");
     } finally {
         btn.innerHTML = origText;

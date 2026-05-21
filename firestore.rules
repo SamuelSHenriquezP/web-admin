@@ -50,16 +50,16 @@ service cloud.firestore {
         // Operarios pueden actualizar su propio trabajo con campos permitidos y estados válidos
         (resource.data.operarioId == request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['estado', 'tiempoEnCamino', 'tiempoEnSitio', 'tiempoCompletado', 'reporteTecnico']
+            ['estado', 'tiempoEnCamino', 'tiempoEnSitio', 'tiempoInicioTrabajo', 'tiempoFinTrabajo', 'tiempoCompletado', 'reporteTecnico']
           ) &&
-          request.resource.data.estado in ['en_camino', 'en_sitio', 'retrasado', 'revision_cliente']
+          request.resource.data.estado in ['en_camino', 'en_sitio', 'retrasado', 'revision_cliente', 'en_progreso', 'esperando_cierre']
         ) ||
-        // Clientes pueden aprobar su reporte
+        // Clientes pueden aprobar/rechazar su reporte y calificar
         (resource.data.clienteId == request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['estado', 'reporteAprobado', 'evaluacionCliente']
+            ['estado', 'reporteAprobado', 'reporteRechazado', 'evaluacionCliente']
           ) &&
-          request.resource.data.estado == 'evaluado_cliente'
+          request.resource.data.estado in ['trabajo_aprobado', 'en_sitio', 'evaluado_cliente']
         )
       );
       

@@ -53,7 +53,7 @@ exports.crearOperario = onCall({ invoker: "public" }, async (request) => {
   try {
     await assertAdmin(request); // 0 reads DB
 
-    const { email, password, nombre, capacidades, telefono, fechaContratacion, activo } = request.data;
+    const { email, password, nombre, activo, ...otrosDatos } = request.data;
     if (!email || !password || !nombre) {
       throw new HttpsError("invalid-argument", "Faltan campos obligatorios: email, password, nombre.");
     }
@@ -65,15 +65,13 @@ exports.crearOperario = onCall({ invoker: "public" }, async (request) => {
       nombre,
       email,
       rol: "operario",
-      capacidades: capacidades || [],
-      telefono: telefono || "",
-      fechaContratacion: fechaContratacion || "",
       activo: activo !== undefined ? activo : true,
       estadoActual: "disponible",
       totalVotos: 0,
       sumaPuntos: 0,
       calificacion: 0,
       creadoEn: admin.firestore.FieldValue.serverTimestamp(),
+      ...otrosDatos
     });
 
     return { success: true, uid: userRecord.uid };
@@ -91,7 +89,7 @@ exports.crearCliente = onCall({ invoker: "public" }, async (request) => {
   try {
     await assertAdmin(request); // 0 reads DB
 
-    const { email, password, nombre, contacto, telefono, direccion, activo } = request.data;
+    const { email, password, nombre, activo, ...otrosDatos } = request.data;
     if (!email || !password || !nombre) {
       throw new HttpsError("invalid-argument", "Faltan campos obligatorios: email, password, nombre.");
     }
@@ -103,12 +101,10 @@ exports.crearCliente = onCall({ invoker: "public" }, async (request) => {
       nombre,
       email,
       rol: "cliente",
-      contacto: contacto || "",
-      telefono: telefono || "",
-      direccion: direccion || "",
       activo: activo !== undefined ? activo : true,
       totalServicios: 0,
       creadoEn: admin.firestore.FieldValue.serverTimestamp(),
+      ...otrosDatos
     });
 
     return { success: true, uid: userRecord.uid };

@@ -74,7 +74,7 @@
 
                 <div class="sidebar-footer">
                     <button onclick="logout()" class="btn btn-outline" style="width: 100%;"><i
-                            class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+                            class="fas fa-sign-out-alt"></i> SALIR</button>
                 </div>
             </aside>
 
@@ -234,11 +234,11 @@
     <div id="view-cliente" class="view" style="height: 100vh;">
         <header class="header-cliente">
             <h1 class="logo-auth" style="margin: 0; font-size: 22px;"><img src="logo.png?v=1" alt="Logo"
-                    class="header-logo"> SERVI<span style="color: var(--warning);">INTEL</span></h1>
+                    class="header-logo"> SERVI<span>INTEL</span> <span class="pro-badge">CLIENTE</span></h1>
             <div style="display: flex; gap: 16px; align-items: center;">
                 <span style="font-weight: 500; font-size: 14px; opacity: 0.9;" id="cliente-nombre-display">Portal
                     del Cliente</span>
-                <button onclick="logout()" class="btn-salir"><i class="fas fa-power-off"></i></button>
+                <button onclick="logout()" class="btn-salir" title="Cerrar Sesión"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
@@ -283,16 +283,14 @@
 
     <!-- ================= 4. PANEL OPERARIO (TÉCNICO) ================= -->
     <div id="view-operario" class="view">
-        <header class="header-cliente" style="background: linear-gradient(135deg, #0f172a, #1e293b); border-bottom: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-            <h1 class="logo-auth" style="color: white !important; margin: 0; font-size: 22px; letter-spacing: -1px;">
-                <img src="logo.png?v=1" alt="Logo" class="header-logo" style="filter: brightness(0) invert(1);">
-                SERVI<span style="color: var(--warning);">INTEL</span> <span
-                    style="font-size: 13px; font-weight: normal; color: #cbd5e1; margin-left: 8px;">| Operativo</span>
+        <header class="header-cliente">
+            <h1 class="logo-auth" style="margin: 0; font-size: 22px; letter-spacing: -1px;">
+                <img src="logo.png?v=1" alt="Logo" class="header-logo">
+                SERVI<span>INTEL</span> <span class="pro-badge">OPERARIO</span>
             </h1>
-            <div style="display: flex; gap: 16px; align-items: center; color: white;">
+            <div style="display: flex; gap: 16px; align-items: center; color: var(--text-main);">
                 <span style="font-weight: 500; font-size: 14px; opacity: 0.9;" id="op-nombre-display">Técnico</span>
-                <button onclick="logout()" class="btn-salir"
-                    style="border-color: rgba(255,255,255,0.2); color: white; transition: all 0.2s;"><i class="fas fa-power-off"></i></button>
+                <button onclick="logout()" class="btn-salir" title="Cerrar Sesión"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
@@ -304,7 +302,7 @@
             
             <div id="lista-op-pedidos" style="max-height: calc(100vh - 220px); overflow-y: auto; padding-right: 10px; padding-bottom: 40px;">
                 <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                    <i class="fas fa-circle-notch fa-spin" style="font-size: 32px; color: #0c9bc9; margin-bottom: 16px;"></i>
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 32px; color: var(--primary); margin-bottom: 16px;"></i>
                     <h3 style="color: #1e293b; font-size: 18px; font-weight: 700; margin-bottom: 8px;">Sincronizando tareas...</h3>
                     <p style="color: #64748b; font-size: 14px;">Estamos conectando con el centro de control.</p>
                 </div>
@@ -314,24 +312,35 @@
 
     <!-- ================= MODAL OPERARIO ================= -->
     <div id="modal-nuevo-op" class="modal-overlay oculto">
-        <div class="modal-content">
-            <h2
-                style="margin-bottom: 24px; font-size: 20px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px;">
+        <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
+            <h2 style="margin-bottom: 24px; font-size: 20px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px;">
                 <i class="fas fa-user-plus" style="color: var(--primary);"></i> Alta de Técnico
             </h2>
             <input id="opNom" type="text" placeholder="Nombre completo" class="input-premium">
+            <input id="opCedula" type="number" placeholder="Cédula de Identidad" class="input-premium">
             <input id="opMail" type="email" placeholder="Correo electrónico corporativo" class="input-premium">
             <input id="opPass" type="password" placeholder="Contraseña de acceso" class="input-premium">
-            <input id="opTel" type="tel" placeholder="Teléfono celular del técnico" class="input-premium">
+            
+            <div style="display: flex; gap: 12px;">
+                <input id="opTel1" type="tel" placeholder="Teléfono 1" class="input-premium" style="flex: 1;">
+                <input id="opTel2" type="tel" placeholder="Teléfono 2 (Opcional)" class="input-premium" style="flex: 1;">
+            </div>
 
-            <label
-                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">Fecha
-                de Inicio de Labores</label>
-            <input id="opContrato" type="date" class="input-premium">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">Tipo de Técnico</label>
+            <select id="opTipoContrato" class="input-premium" onchange="document.getElementById('opCamposFijo').style.display = this.value === 'Fijo' ? 'block' : 'none';">
+                <option value="Por servicio">Por servicio (Eventual)</option>
+                <option value="Fijo">Fijo (Contrato indefinido)</option>
+            </select>
 
-            <label
-                style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">Competencia
-                / Certificación</label>
+            <div id="opCamposFijo" style="display: none; background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">Fecha de Inicio de Contrato</label>
+                <input id="opContrato" type="date" class="input-premium">
+                
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">Horario de Trabajo</label>
+                <input id="opHorario" type="text" placeholder="Ej: Lunes a Viernes 8am - 6pm" class="input-premium" style="margin-bottom: 0;">
+            </div>
+
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">Competencia / Certificación</label>
             <select id="opCap" class="input-premium">
                 <option value="Certificado">Tiene Certificado Profesional</option>
                 <option value="Sin Certificado">No tiene Certificado</option>
@@ -339,8 +348,7 @@
 
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="crearOperario()" class="btn btn-primary" id="btnCrearOp">COMISIONAR TÉCNICO</button>
-                <button onclick="document.getElementById('modal-nuevo-op').classList.add('oculto')"
-                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+                <button onclick="document.getElementById('modal-nuevo-op').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
             </div>
         </div>
     </div>
@@ -462,22 +470,73 @@
 
     <!-- ================= MODAL NUEVO CLIENTE (ADMIN) ================= -->
     <div id="modal-nuevo-cliente" class="modal-overlay oculto">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
             <h2 style="margin-bottom: 24px; font-size: 20px; font-weight: 700; color: var(--text-main);">
                 <i class="fas fa-building" style="color: var(--secondary);"></i> Registro de Cliente
             </h2>
-            <input id="cliNom" type="text" placeholder="Empresa / Razón Social" class="input-premium">
-            <input id="cliMail" type="email" placeholder="Correo electrónico corporativo" class="input-premium">
-            <input id="cliPass" type="password" placeholder="Contraseña de acceso inicial" class="input-premium">
-            <input id="cliCont" type="text" placeholder="Persona de contacto" class="input-premium">
-            <input id="cliTel" type="tel" placeholder="Teléfono de contacto" class="input-premium">
-            <input id="cliDir" type="text" placeholder="Dirección de servicio" class="input-premium">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                    <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">TIPO DE PERSONA</label>
+                    <select id="cliTipoPersona" class="input-premium" onchange="document.getElementById('cliCamposEmpresa').style.display = this.value === 'Empresa' ? 'block' : 'none'; document.getElementById('cliCamposNatural').style.display = this.value === 'Natural' ? 'block' : 'none';">
+                        <option value="Empresa">Empresa (Jurídica)</option>
+                        <option value="Natural">Persona Natural</option>
+                    </select>
+
+                    <div id="cliCamposEmpresa">
+                        <input id="cliRazonSocial" type="text" placeholder="Razón Social" class="input-premium">
+                        <input id="cliNit" type="text" placeholder="NIT" class="input-premium">
+                        <input id="cliRepLegal" type="text" placeholder="Representante Legal" class="input-premium">
+                        <input id="cliCedulaRep" type="number" placeholder="Cédula Representante" class="input-premium">
+                    </div>
+
+                    <div id="cliCamposNatural" style="display: none;">
+                        <input id="cliNombreCompleto" type="text" placeholder="Nombre Completo" class="input-premium">
+                        <input id="cliCedula" type="number" placeholder="Cédula de Ciudadanía" class="input-premium">
+                    </div>
+
+                    <input id="cliCont" type="text" placeholder="Persona de Contacto (Si es diferente)" class="input-premium">
+                    
+                    <div style="display: flex; gap: 12px;">
+                        <input id="cliTel1" type="tel" placeholder="Teléfono 1" class="input-premium" style="flex: 1;">
+                        <input id="cliTel2" type="tel" placeholder="Teléfono 2" class="input-premium" style="flex: 1;">
+                    </div>
+
+                    <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">CREDENCIALES DE ACCESO</label>
+                    <input id="cliMail" type="email" placeholder="Correo electrónico" class="input-premium">
+                    <input id="cliPass" type="password" placeholder="Contraseña de acceso inicial" class="input-premium">
+                </div>
+
+                <div>
+                    <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">UBICACIÓN</label>
+                    <input id="cliCiudad" type="text" placeholder="Ciudad / Municipio" class="input-premium">
+                    <input id="cliBarrio" type="text" placeholder="Barrio" class="input-premium">
+                    <input id="cliDir" type="text" placeholder="Dirección detallada" class="input-premium">
+
+                    <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 12px;">RELACIÓN COMERCIAL</label>
+                    <select id="cliTipoRelacion" class="input-premium" onchange="document.getElementById('cliCamposAlquiler').style.display = this.value === 'Alquiler' ? 'block' : 'none';">
+                        <option value="Demanda">Servicio por Demanda (Eventual)</option>
+                        <option value="Alquiler">Contrato de Alquiler Mensual</option>
+                    </select>
+
+                    <div id="cliCamposAlquiler" style="display: none; background: var(--bg-app); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+                        <textarea id="cliEquiposAlquilados" placeholder="Equipos alquilados (Cantidades y Modelos)" class="input-premium" style="height: 60px; resize: vertical;"></textarea>
+                        <input id="cliValorMensual" type="number" placeholder="Valor Mensual total ($)" class="input-premium">
+                        <input id="cliCopiasFavor" type="number" placeholder="Copias/Impresiones a favor" class="input-premium">
+                        <input id="cliValorCopiaExtra" type="number" placeholder="Valor Copia Extra ($)" class="input-premium">
+                        
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block;">Estado de Cuenta Inicial</label>
+                        <select id="cliEstadoCuenta" class="input-premium" style="margin-bottom: 0;">
+                            <option value="Al día">Al día</option>
+                            <option value="Con deuda">Con deuda</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
 
             <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button onclick="crearClienteAdmin()" class="btn btn-secondary" id="btnCrearCliAdmin">REGISTRAR
-                    CLIENTE</button>
-                <button onclick="document.getElementById('modal-nuevo-cliente').classList.add('oculto')"
-                    class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
+                <button onclick="crearClienteAdmin()" class="btn btn-secondary" id="btnCrearCliAdmin" style="flex: 2;">REGISTRAR CLIENTE</button>
+                <button onclick="document.getElementById('modal-nuevo-cliente').classList.add('oculto')" class="btn btn-outline" style="flex: 1;">Cancelar</button>
             </div>
         </div>
     </div>
@@ -530,6 +589,15 @@
                 <option value="">— Sin asignar por ahora —</option>
             </select>
 
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; margin-top: 10px;">UBICACIÓN DEL SERVICIO</label>
+            <input id="padminDirTexto" type="text" placeholder="Ej: Carrera 45 # 12-00" class="input-premium" style="margin-bottom: 10px;">
+            <div style="position: relative;">
+                <div id="mapaAdminCrearView" style="width: 100%; height: 200px; background: #e2e8f0; border-radius: 8px; margin-bottom: 16px; z-index: 1;"></div>
+                <div style="position: absolute; top: calc(50% - 20px); left: 50%; transform: translate(-50%, -50%); z-index: 1000; pointer-events: none;">
+                    <i class="fas fa-map-marker-alt" style="color: var(--secondary); font-size: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="crearPedidoAdmin()" class="btn btn-primary" id="btnCrearPedidoAdmin">GENERAR
                     TICKET</button>
@@ -578,6 +646,9 @@
                     <small style="color: var(--text-muted);">ID Ticket: <span id="detJobId"></span></small>
                     <small style="color: var(--text-muted);"><i class="far fa-calendar-alt"></i> <span id="detJobFecha"></span></small>
                 </div>
+                <div style="display: flex; justify-content: flex-end; align-items: center; padding: 0 5px; margin-top: 5px;">
+                    <small style="color: var(--text-muted);"><i class="fas fa-stopwatch"></i> Tiempo de Trabajo: <span id="detJobTiempo" style="font-weight: 700; color: var(--primary);">N/A</span></small>
+                </div>
                 <div style="background: var(--bg-app); padding: 12px; border-radius: 10px; margin-top: 10px;">
                     <button onclick="abrirMapaAdmin()" class="btn btn-outline" style="width: 100%;">
                         <i class="fas fa-map-marked-alt" style="color: var(--secondary);"></i> Ver / Validar Ubicación en Mapa
@@ -585,9 +656,18 @@
                     <p style="margin-top: 12px; margin-bottom: 4px; font-size: 11px; font-weight: 700; color: var(--text-muted);">DIRECCIÓN / REFERENCIA (OPCIONAL):</p>
                     <p id="detJobDireccion" style="font-size: 13px; color: var(--text-main); margin: 0; padding: 10px; background: white; border-radius: 8px; border: 1px solid var(--border);"></p>
                 </div>
+                
+                <div id="detJobReporteContainer" class="oculto" style="background: var(--bg-app); padding: 12px; border-radius: 10px; margin-top: 10px; border: 1px solid var(--primary);">
+                    <small style="color: var(--primary); display: block; margin-bottom: 4px; font-weight: 700;"><i class="fas fa-file-alt"></i> REPORTE TÉCNICO Y EVALUACIÓN</small>
+                    <div id="detJobReporteContenido" style="font-size: 13px; color: var(--text-main); margin-top: 8px; max-height: 250px; overflow-y: auto; background: white; padding: 10px; border-radius: 8px;">
+                    </div>
+                </div>
             </div>
 
             <div style="margin-top: 24px; display: flex; gap: 12px;">
+                <button id="btnCompletarAdmin" onclick="marcarCompletado(document.getElementById('mapaJobId').value)" class="btn btn-small oculto" style="background: #0d9488; color: white; flex: 1;">
+                    <i class="fas fa-check-double"></i> MARCAR COMO COMPLETADO
+                </button>
                 <button id="btnCierreAdmin" onclick="cerrarYFacturarJob()" class="btn btn-success oculto" style="background: #22c55e; color: white;">
                     <i class="fas fa-check-double"></i> CERRAR Y FACTURAR
                 </button>
@@ -648,18 +728,45 @@
             <div id="resumenReporteTecnico" style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; max-height: 250px; overflow-y: auto; background: var(--bg-app); padding: 12px; border-radius: 8px;">
             </div>
             <input type="hidden" id="vbJobId">
-            <h3 style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Calificación del Servicio</h3>
-            <div id="estrellasVb" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; font-size: 32px; color: var(--border); cursor: pointer;">
-                <i class="fas fa-star" data-val="1"></i>
-                <i class="fas fa-star" data-val="2"></i>
-                <i class="fas fa-star" data-val="3"></i>
-                <i class="fas fa-star" data-val="4"></i>
-                <i class="fas fa-star" data-val="5"></i>
+            <div id="vbSeccionAprobar">
+                <p style="font-size: 14px; margin-bottom: 16px; font-weight: 600; text-align: center;">¿Desea aprobar este diagnóstico y proceder con el trabajo?</p>
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button id="btnRechazarReporte" onclick="rechazarReporteCliente()" class="btn btn-danger" style="background: #ef4444; color: white; border: none;"><i class="fas fa-times-circle"></i> RECHAZAR</button>
+                    <button id="btnAprobarReporte" onclick="enviarAprobacionCliente()" class="btn" style="background: #22c55e; color: white; flex: 2; border: none;"><i class="fas fa-check-circle"></i> APROBAR DIAGNÓSTICO</button>
+                    <button onclick="document.getElementById('modal-visto-bueno').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cerrar</button>
+                </div>
             </div>
-            <textarea id="vbComentario" placeholder="Déjanos un comentario adicional..." class="input-premium" style="height: 80px; resize: none;"></textarea>
-            <div style="display: flex; gap: 12px; margin-top: 16px;">
-                <button id="btnAprobarReporte" onclick="enviarAprobacionCliente()" class="btn" style="background: #22c55e; color: white;"><i class="fas fa-check-circle"></i> ACEPTAR Y FINALIZAR</button>
-                <button onclick="document.getElementById('modal-visto-bueno').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cerrar</button>
+            <div id="vbSeccionSoloLectura" class="oculto">
+                <h3 style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Su Calificación</h3>
+                <div id="vbSoloLecturaEstrellas" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; font-size: 32px; color: #f59e0b;">
+                </div>
+                <p id="vbSoloLecturaComentario" style="font-size: 13px; color: var(--text-main); font-style: italic; background: var(--bg-app); padding: 12px; border-radius: 8px;"></p>
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button onclick="document.getElementById('modal-visto-bueno').classList.add('oculto')" class="btn btn-outline" style="flex: 1;">Cerrar Resumen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL CALIFICACIÓN CLIENTE ================= -->
+    <div id="modal-calificacion" class="modal-overlay oculto">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 700;"><i class="fas fa-star" style="color: #f59e0b;"></i> Calificar Servicio</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">El trabajo ha finalizado. Por favor evalúe el servicio.</p>
+            <input type="hidden" id="califJobId">
+            <div style="text-align: center;">
+                <div id="estrellasCalif" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; font-size: 32px; color: var(--border); cursor: pointer;">
+                    <i class="fas fa-star" data-val="1"></i>
+                    <i class="fas fa-star" data-val="2"></i>
+                    <i class="fas fa-star" data-val="3"></i>
+                    <i class="fas fa-star" data-val="4"></i>
+                    <i class="fas fa-star" data-val="5"></i>
+                </div>
+                <textarea id="califComentario" placeholder="Déjanos un comentario adicional..." class="input-premium" style="height: 80px; resize: none; margin-bottom: 16px; width: 100%;"></textarea>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="document.getElementById('modal-calificacion').classList.add('oculto')" class="btn btn-outline" style="flex: 1;">Cancelar</button>
+                    <button id="btnEnviarCalif" onclick="enviarCalificacionCliente()" class="btn" style="background: #22c55e; color: white; flex: 2;"><i class="fas fa-paper-plane"></i> ENVIAR CALIFICACIÓN</button>
+                </div>
             </div>
         </div>
     </div>
