@@ -244,9 +244,9 @@
 
         <main class="contenedor page-content">
             <div class="grid-2">
-                <div class="tarjeta" style="border-top: 3px solid var(--secondary);">
+                <div class="tarjeta" style="border-top: 3px solid var(--primary);">
                     <div class="titulo-seccion"><i class="fas fa-headset"
-                            style="color: var(--secondary); margin-right: 8px;"></i> Solicitar Intervención</div>
+                            style="color: var(--primary); margin-right: 8px;"></i> Solicitar Intervención</div>
                     <label
                         style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; letter-spacing: 0.5px;">ÁREA
                         TÉCNICA</label>
@@ -265,7 +265,7 @@
                         placeholder="Describa el problema con el mayor detalle posible para enviar al especialista adecuado..."
                         class="input-premium" style="height: 140px; resize: vertical;"></textarea>
 
-                    <button onclick="abrirMapaCliente()" class="btn btn-secondary"
+                    <button onclick="abrirMapaCliente()" class="btn btn-primary"
                         style="margin-top: 10px; font-size: 14px;"><i class="fas fa-location-crosshairs"></i> CONTINUAR A UBICACIÓN</button>
                 </div>
 
@@ -701,7 +701,7 @@
     <div id="modal-mapa-cliente" class="modal-overlay oculto">
         <div class="modal-content" style="max-width: 600px; padding: 20px;">
             <h2 style="margin-bottom: 12px; font-size: 18px; font-weight: 700; color: var(--text-main);">
-                <i class="fas fa-location-crosshairs" style="color: var(--secondary);"></i> Ubicación del Servicio
+                <i class="fas fa-location-crosshairs" style="color: var(--primary);"></i> Ubicación del Servicio
             </h2>
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
                 Mueve el mapa para marcar el sitio exacto del servicio requerido. Si se te dificulta encontrar el punto exacto, puedes dejar tu dirección escrita abajo:
@@ -710,11 +710,11 @@
             <div style="position: relative;">
                 <div id="mapaClienteView" style="width: 100%; height: 350px; background: #e2e8f0; border-radius: 8px; margin-bottom: 16px; z-index: 1;"></div>
                 <div style="position: absolute; top: calc(50% - 20px); left: 50%; transform: translate(-50%, -50%); z-index: 1000; pointer-events: none;">
-                    <i class="fas fa-map-marker-alt" style="color: var(--secondary); font-size: 40px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
+                    <i class="fas fa-map-marker-alt" style="color: var(--primary); font-size: 40px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i>
                 </div>
             </div>
             <div style="display: flex; gap: 12px;">
-                <button onclick="confirmarUbicacionCliente()" class="btn btn-secondary" id="btnConfirmarUbiCli">CONFIRMAR Y SOLICITAR TÉCNICO</button>
+                <button onclick="confirmarUbicacionCliente()" class="btn btn-primary" id="btnConfirmarUbiCli">CONFIRMAR Y SOLICITAR TÉCNICO</button>
                 <button onclick="document.getElementById('modal-mapa-cliente').classList.add('oculto')" class="btn btn-outline" style="flex: 0.5;">Cancelar</button>
             </div>
         </div>
