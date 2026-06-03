@@ -4,7 +4,7 @@ import { showToast } from "./ui.js";
 import { userData } from "./auth.js";
 
 const escapeHtml = (str) => {
-    if (!str) return '';
+    if (!str && str !== 0) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 };
 
@@ -205,30 +205,57 @@ window.abrirVistoBueno = (jobId) => {
         <div style="margin-bottom: 8px;"><strong>Cédula:</strong> ${escapeHtml(rep.encargadoCedula || 'N/D')}</div>
     `;
 
-    if (rep.equipos && rep.equipos.length > 0) {
-        html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Equipos Intervenidos:</div>`;
-        rep.equipos.forEach(e => {
-            html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(e.equipoMarca)} ${escapeHtml(e.modelo)} (Contador: ${escapeHtml(e.contador)})</div>`;
-        });
-    }
+    // Nueva Lógica Retrocompatible
+    if (rep.trabajosReportados && rep.trabajosReportados.length > 0) {
+        rep.trabajosReportados.forEach((t, i) => {
+            html += `<div style="margin-top: 12px; background: white; border-left: 3px solid var(--primary); padding: 8px; border-radius: 4px;">`;
+            html += `<div style="font-weight: 800; font-size: 13px; color: var(--primary); margin-bottom: 4px;">${i + 1}. Trabajo de ${escapeHtml(t.tipo)}</div>`;
+            if (t.marca || t.modelo) {
+                html += `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Equipo:</strong> ${escapeHtml(t.marca)} ${escapeHtml(t.modelo)} ${t.contador ? '(Contador: ' + escapeHtml(t.contador) + ')' : ''}</div>`;
+            }
 
-    if (rep.detallesTecnicos && rep.detallesTecnicos.length > 0) {
-        html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Detalles de la Intervención:</div>`;
-        rep.detallesTecnicos.forEach((d, i) => {
-            html += `<div style="margin-top: 8px; border-left: 2px solid var(--primary); padding-left: 8px;">
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">DIAGNÓSTICO ${i + 1}:</div>
-                <div style="margin-bottom: 4px;">${escapeHtml(d.diagnostico)}</div>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">SOLUCIÓN:</div>
-                <div>${escapeHtml(d.solucion)}</div>
-            </div>`;
+            if (t.tipo === 'Mantenimiento') {
+                if (t.diagnostico) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Diagnóstico:</strong> ${escapeHtml(t.diagnostico)}</div>`;
+                if (t.solucion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Solución:</strong> ${escapeHtml(t.solucion)}</div>`;
+                if (t.insumos) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Insumos:</strong> ${escapeHtml(t.insumos)}</div>`;
+            } else if (t.tipo === 'Venta') {
+                if (t.descripcion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Detalle Venta:</strong> ${escapeHtml(t.descripcion)}</div>`;
+                if (t.valor) html += `<div style="font-size: 12px; margin-top: 4px; color: #16a34a; font-weight: bold;"><strong>Valor Venta:</strong> $${escapeHtml(t.valor)}</div>`;
+                if (t.garantia) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Garantía:</strong> ${escapeHtml(t.garantia)}</div>`;
+            } else if (t.tipo === 'Alquiler') {
+                if (t.condiciones) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Condiciones:</strong> ${escapeHtml(t.condiciones)}</div>`;
+                if (t.duracion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Duración:</strong> ${escapeHtml(t.duracion)} meses</div>`;
+                if (t.valorMensual) html += `<div style="font-size: 12px; margin-top: 4px; color: #0284c7; font-weight: bold;"><strong>Canon Mensual:</strong> $${escapeHtml(t.valorMensual)}</div>`;
+            }
+            html += `</div>`;
         });
-    }
+    } else {
+        // Lógica Antigua (Retrocompatibilidad)
+        if (rep.equipos && rep.equipos.length > 0) {
+            html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Equipos Intervenidos:</div>`;
+            rep.equipos.forEach(e => {
+                html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(e.equipoMarca)} ${escapeHtml(e.modelo)} (Contador: ${escapeHtml(e.contador)})</div>`;
+            });
+        }
 
-    if (rep.insumos && rep.insumos.length > 0) {
-        html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Repuestos e Insumos:</div>`;
-        rep.insumos.forEach(ins => {
-            html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(ins.cantidad)}x ${escapeHtml(ins.descripcion)}</div>`;
-        });
+        if (rep.detallesTecnicos && rep.detallesTecnicos.length > 0) {
+            html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Detalles de la Intervención:</div>`;
+            rep.detallesTecnicos.forEach((d, i) => {
+                html += `<div style="margin-top: 8px; border-left: 2px solid var(--primary); padding-left: 8px;">
+                    <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">DIAGNÓSTICO ${i + 1}:</div>
+                    <div style="margin-bottom: 4px;">${escapeHtml(d.diagnostico)}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">SOLUCIÓN:</div>
+                    <div>${escapeHtml(d.solucion)}</div>
+                </div>`;
+            });
+        }
+
+        if (rep.insumos && rep.insumos.length > 0) {
+            html += `<div style="margin-top: 12px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Repuestos e Insumos:</div>`;
+            rep.insumos.forEach(ins => {
+                html += `<div style="font-size: 12px; margin-top: 4px;">• ${escapeHtml(ins.cantidad)}x ${escapeHtml(ins.descripcion)}</div>`;
+            });
+        }
     }
 
     if (rep.costoEmpresa || rep.costoTecnico) {

@@ -798,23 +798,11 @@
                 <input id="repCedula" type="number" placeholder="Documento de Identidad" class="input-premium" style="margin-bottom: 0;">
             </div>
 
-            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
-                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">EQUIPOS INTERVENIDOS</label>
-                <div id="repEquiposContainer"></div>
-                <button onclick="agregarFila('equipos')" class="btn btn-outline btn-small" style="margin-top: 8px;"><i class="fas fa-plus"></i> Añadir Equipo</button>
-            </div>
+            <div id="contenedor-subtrabajos"></div>
 
-            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
-                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">DETALLES DE LA INTERVENCIÓN</label>
-                <div id="repDetallesContainer"></div>
-                <button onclick="agregarFila('detalles')" class="btn btn-outline btn-small" style="margin-top: 8px;"><i class="fas fa-plus"></i> Añadir Detalle</button>
-            </div>
-
-            <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
-                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">INSUMOS UTILIZADOS</label>
-                <div id="repInsumosContainer"></div>
-                <button onclick="agregarFila('insumos')" class="btn btn-outline btn-small" style="margin-top: 8px;"><i class="fas fa-plus"></i> Añadir Insumo</button>
-            </div>
+            <button onclick="agregarSubtrabajo()" class="btn btn-outline" style="width: 100%; margin-bottom: 16px; border: 2px dashed var(--secondary); color: var(--secondary);">
+                <i class="fas fa-plus"></i> Agregar otro trabajo a este reporte
+            </button>
 
             <div style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);">
                 <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">LIQUIDACIÓN DE SERVICIOS</label>

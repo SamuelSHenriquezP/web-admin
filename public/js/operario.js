@@ -4,7 +4,7 @@ import { showToast } from "./ui.js";
 import { userData } from "./auth.js";
 
 const escapeHtml = (str) => {
-    if (!str) return '';
+    if (!str && str !== 0) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 };
 
@@ -183,39 +183,74 @@ window.retrasoOperario = async (jobId) => {
     } catch (e) { showToast("Error: " + e.message, "error"); }
 };
 
-// Formulario Dinámico de Reporte Técnico
-let reportRowCounters = { equipos: 0, detalles: 0, insumos: 0 };
+// Formulario Dinámico de Reporte Técnico: Múltiples Trabajos
+let subtrabajoCounter = 0;
 
-window.agregarFila = (tipo) => {
-    const container = document.getElementById(`rep${tipo.charAt(0).toUpperCase() + tipo.slice(1)}Container`);
-    const id = reportRowCounters[tipo]++;
-    let html = '';
+window.agregarSubtrabajo = () => {
+    const container = document.getElementById('contenedor-subtrabajos');
+    const id = subtrabajoCounter++;
+    
+    const html = `
+    <div id="subtrabajo-${id}" style="background: var(--bg-app); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border); position: relative;">
+        <button onclick="document.getElementById('subtrabajo-${id}').remove()" class="btn btn-outline" style="position: absolute; top: 10px; right: 10px; padding: 4px 8px; color: var(--danger); border-color: var(--danger);"><i class="fas fa-trash"></i></button>
+        
+        <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">TIPO DE TRABAJO</label>
+        <select id="tipoTrabajo-${id}" class="input-premium" onchange="cambiarTipoTrabajo(${id})">
+            <option value="Mantenimiento">Mantenimiento / Reparación</option>
+            <option value="Venta">Venta de Equipo / Insumo</option>
+            <option value="Alquiler">Alquiler de Equipo</option>
+        </select>
 
-    if (tipo === 'equipos') {
-        html = `
-        <div id="row-${tipo}-${id}" style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input type="text" placeholder="Marca" class="input-premium" style="margin-bottom:0; flex:1;" id="eqMarca-${id}">
-            <input type="text" placeholder="Modelo" class="input-premium" style="margin-bottom:0; flex:1;" id="eqModelo-${id}">
-            <input type="text" placeholder="Contador" class="input-premium" style="margin-bottom:0; flex:0.8;" id="eqCont-${id}">
-            <button onclick="document.getElementById('row-${tipo}-${id}').remove()" class="btn btn-outline" style="width:auto; border-color:var(--secondary); color:var(--secondary); padding: 0 12px;"><i class="fas fa-trash"></i></button>
-        </div>`;
-    } else if (tipo === 'detalles') {
-        html = `
-        <div id="row-${tipo}-${id}" style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input type="text" placeholder="Diagnóstico Inicial" class="input-premium" style="margin-bottom:0; flex:1;" id="detDiag-${id}">
-            <input type="text" placeholder="Solución Aplicada" class="input-premium" style="margin-bottom:0; flex:1;" id="detSol-${id}">
-            <button onclick="document.getElementById('row-${tipo}-${id}').remove()" class="btn btn-outline" style="width:auto; border-color:var(--secondary); color:var(--secondary); padding: 0 12px;"><i class="fas fa-trash"></i></button>
-        </div>`;
-    } else if (tipo === 'insumos') {
-        html = `
-        <div id="row-${tipo}-${id}" style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input type="text" placeholder="Descripción del Repuesto o Insumo" class="input-premium" style="margin-bottom:0; flex:2;" id="insDesc-${id}">
-            <input type="number" placeholder="Cant." class="input-premium" style="margin-bottom:0; flex:0.5;" id="insCant-${id}">
-            <button onclick="document.getElementById('row-${tipo}-${id}').remove()" class="btn btn-outline" style="width:auto; border-color:var(--secondary); color:var(--secondary); padding: 0 12px;"><i class="fas fa-trash"></i></button>
-        </div>`;
-    }
+        <!-- Campos comunes a todos -->
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" placeholder="Marca / Equipo" class="input-premium" style="margin-bottom:0; flex:1;" id="stMarca-${id}">
+            <input type="text" placeholder="Modelo" class="input-premium" style="margin-bottom:0; flex:1;" id="stModelo-${id}">
+            <input type="text" placeholder="Contador (Opcional)" class="input-premium" style="margin-bottom:0; flex:0.8;" id="stCont-${id}">
+        </div>
+        
+        <!-- Campos específicos por tipo -->
+        <div id="camposEspecificos-${id}">
+            <!-- Por defecto: Mantenimiento -->
+            <input type="text" placeholder="Diagnóstico Inicial" class="input-premium" id="stDiag-${id}">
+            <input type="text" placeholder="Solución Aplicada / Trabajo Realizado" class="input-premium" id="stSol-${id}">
+            <input type="text" placeholder="Repuestos / Insumos utilizados" class="input-premium" style="margin-bottom:0;" id="stInsumos-${id}">
+        </div>
+    </div>`;
 
     container.insertAdjacentHTML('beforeend', html);
+    cambiarTipoTrabajo(id); // Para inicializar los campos
+};
+
+window.cambiarTipoTrabajo = (id) => {
+    const tipo = document.getElementById(`tipoTrabajo-${id}`).value;
+    const container = document.getElementById(`camposEspecificos-${id}`);
+    
+    let html = '';
+    if (tipo === 'Mantenimiento') {
+        html = `
+            <input type="text" placeholder="Diagnóstico Inicial" class="input-premium" id="stDiag-${id}">
+            <input type="text" placeholder="Solución Aplicada / Trabajo Realizado" class="input-premium" id="stSol-${id}">
+            <input type="text" placeholder="Repuestos / Insumos utilizados (Opcional)" class="input-premium" style="margin-bottom:0;" id="stInsumos-${id}">
+        `;
+    } else if (tipo === 'Venta') {
+        html = `
+            <input type="text" placeholder="Descripción de la Venta" class="input-premium" id="stVentaDesc-${id}">
+            <div style="display: flex; gap: 8px; margin-bottom: 0;">
+                <input type="number" placeholder="Valor Venta ($)" class="input-premium" style="margin-bottom:0; flex:1;" id="stVentaValor-${id}">
+                <input type="text" placeholder="Garantía (ej. 3 meses)" class="input-premium" style="margin-bottom:0; flex:1;" id="stVentaGarantia-${id}">
+            </div>
+        `;
+    } else if (tipo === 'Alquiler') {
+        html = `
+            <input type="text" placeholder="Condiciones del Alquiler" class="input-premium" id="stAlqCond-${id}">
+            <div style="display: flex; gap: 8px; margin-bottom: 0;">
+                <input type="number" placeholder="Duración en meses" class="input-premium" style="margin-bottom:0; flex:1;" id="stAlqDuracion-${id}">
+                <input type="number" placeholder="Valor Mensual ($)" class="input-premium" style="margin-bottom:0; flex:1;" id="stAlqValor-${id}">
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
 };
 
 window.abrirReporteOperario = (jobId) => {
@@ -224,15 +259,11 @@ window.abrirReporteOperario = (jobId) => {
     document.getElementById('repCostoEmpresa').value = '';
     document.getElementById('repCostoTecnico').value = '';
 
-    // Clear containers
-    document.getElementById('repEquiposContainer').innerHTML = '';
-    document.getElementById('repDetallesContainer').innerHTML = '';
-    document.getElementById('repInsumosContainer').innerHTML = '';
+    // Limpiar contenedor dinámico
+    document.getElementById('contenedor-subtrabajos').innerHTML = '';
 
-    // Add 1 default row for each
-    window.agregarFila('equipos');
-    window.agregarFila('detalles');
-    window.agregarFila('insumos');
+    // Añadir 1 trabajo por defecto
+    window.agregarSubtrabajo();
 
     document.getElementById('modal-reporte-tecnico').classList.remove('oculto');
 };
@@ -246,41 +277,53 @@ window.enviarReporteTecnico = async () => {
 
     const jobInfo = allOpJobs.find(j => j.jobId === jobId);
 
-    // Recolectar Equipos
-    const equipos = [];
-    document.querySelectorAll('[id^="row-equipos-"]').forEach(row => {
-        const id = row.id.split('-')[2];
-        const marca = document.getElementById(`eqMarca-${id}`)?.value.trim();
-        const modelo = document.getElementById(`eqModelo-${id}`)?.value.trim();
-        const contador = document.getElementById(`eqCont-${id}`)?.value.trim();
-        if (marca) equipos.push({ equipoMarca: marca, modelo, contador });
+    // Recolectar Trabajos Dinámicos
+    const trabajosReportados = [];
+    document.querySelectorAll('[id^="subtrabajo-"]').forEach(row => {
+        const id = row.id.split('-')[1];
+        const tipo = document.getElementById(`tipoTrabajo-${id}`)?.value;
+        const marca = document.getElementById(`stMarca-${id}`)?.value.trim() || '';
+        const modelo = document.getElementById(`stModelo-${id}`)?.value.trim() || '';
+        const contador = document.getElementById(`stCont-${id}`)?.value.trim() || '';
+        
+        let trabajo = { tipo, marca, modelo, contador };
+        
+        if (tipo === 'Mantenimiento') {
+            const diagnostico = document.getElementById(`stDiag-${id}`)?.value.trim() || '';
+            const solucion = document.getElementById(`stSol-${id}`)?.value.trim() || '';
+            const insumos = document.getElementById(`stInsumos-${id}`)?.value.trim() || '';
+            if (marca || diagnostico || solucion) {
+                trabajo = { ...trabajo, diagnostico, solucion, insumos };
+                trabajosReportados.push(trabajo);
+            }
+        } else if (tipo === 'Venta') {
+            const descripcion = document.getElementById(`stVentaDesc-${id}`)?.value.trim() || '';
+            const valor = parseFloat(document.getElementById(`stVentaValor-${id}`)?.value.trim()) || 0;
+            const garantia = document.getElementById(`stVentaGarantia-${id}`)?.value.trim() || '';
+            if (marca || descripcion || valor) {
+                trabajo = { ...trabajo, descripcion, valor, garantia };
+                trabajosReportados.push(trabajo);
+            }
+        } else if (tipo === 'Alquiler') {
+            const condiciones = document.getElementById(`stAlqCond-${id}`)?.value.trim() || '';
+            const duracion = parseInt(document.getElementById(`stAlqDuracion-${id}`)?.value.trim()) || 0;
+            const valor = parseFloat(document.getElementById(`stAlqValor-${id}`)?.value.trim()) || 0;
+            if (marca || condiciones || valor) {
+                trabajo = { ...trabajo, condiciones, duracion, valorMensual: valor };
+                trabajosReportados.push(trabajo);
+            }
+        }
     });
 
-    // Recolectar Detalles
-    const detallesTecnicos = [];
-    document.querySelectorAll('[id^="row-detalles-"]').forEach(row => {
-        const id = row.id.split('-')[2];
-        const diagnostico = document.getElementById(`detDiag-${id}`)?.value.trim();
-        const solucion = document.getElementById(`detSol-${id}`)?.value.trim();
-        if (diagnostico || solucion) detallesTecnicos.push({ diagnostico, solucion });
-    });
-
-    // Recolectar Insumos
-    const insumos = [];
-    document.querySelectorAll('[id^="row-insumos-"]').forEach(row => {
-        const id = row.id.split('-')[2];
-        const descripcion = document.getElementById(`insDesc-${id}`)?.value.trim();
-        const cantidad = document.getElementById(`insCant-${id}`)?.value.trim();
-        if (descripcion) insumos.push({ descripcion, cantidad });
-    });
+    if (trabajosReportados.length === 0) {
+        return showToast("Debe agregar al menos un trabajo válido en el reporte.", "error");
+    }
 
     const reporteTecnico = {
         encargadoNombre: userData.nombre,
         encargadoCedula: cedula,
         tipoServicio: jobInfo?.categoria || 'General',
-        equipos,
-        detallesTecnicos,
-        insumos,
+        trabajosReportados: trabajosReportados, // Nuevo arreglo de subtrabajos
         costoEmpresa: parseFloat(document.getElementById('repCostoEmpresa').value.trim()) || 0.0,
         costoTecnico: parseFloat(document.getElementById('repCostoTecnico').value.trim()) || 0.0,
         fechaEmision: serverTimestamp()
