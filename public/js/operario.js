@@ -186,7 +186,7 @@ window.retrasoOperario = async (jobId) => {
 // Formulario Dinámico de Reporte Técnico: Múltiples Trabajos
 let subtrabajoCounter = 0;
 
-window.agregarSubtrabajo = () => {
+window.agregarSubtrabajo = (prefillData = null) => {
     const container = document.getElementById('contenedor-subtrabajos');
     const id = subtrabajoCounter++;
     
@@ -203,17 +203,17 @@ window.agregarSubtrabajo = () => {
 
         <!-- Campos comunes a todos -->
         <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" placeholder="ID Equipo" class="input-premium" style="margin-bottom:0; flex:0.6;" id="stIdPropio-${id}" value="${escapeHtml(prefillData?.idPropio || '')}">
             <input type="text" placeholder="Marca / Equipo" class="input-premium" style="margin-bottom:0; flex:1;" id="stMarca-${id}">
-            <input type="text" placeholder="Modelo" class="input-premium" style="margin-bottom:0; flex:1;" id="stModelo-${id}">
-            <input type="text" placeholder="Contador (Opcional)" class="input-premium" style="margin-bottom:0; flex:0.8;" id="stCont-${id}">
+            <input type="text" placeholder="Modelo" class="input-premium" style="margin-bottom:0; flex:1;" id="stModelo-${id}" value="${escapeHtml(prefillData?.modelo || '')}">
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" placeholder="Serial" class="input-premium" style="margin-bottom:0; flex:1;" id="stSerial-${id}" value="${escapeHtml(prefillData?.serial || '')}">
+            <input type="text" placeholder="Contador (Opcional)" class="input-premium" style="margin-bottom:0; flex:1;" id="stCont-${id}">
         </div>
         
         <!-- Campos específicos por tipo -->
         <div id="camposEspecificos-${id}">
-            <!-- Por defecto: Mantenimiento -->
-            <input type="text" placeholder="Diagnóstico Inicial" class="input-premium" id="stDiag-${id}">
-            <input type="text" placeholder="Solución Aplicada / Trabajo Realizado" class="input-premium" id="stSol-${id}">
-            <input type="text" placeholder="Repuestos / Insumos utilizados" class="input-premium" style="margin-bottom:0;" id="stInsumos-${id}">
         </div>
     </div>`;
 
@@ -262,10 +262,52 @@ window.abrirReporteOperario = (jobId) => {
     // Limpiar contenedor dinámico
     document.getElementById('contenedor-subtrabajos').innerHTML = '';
 
-    // Añadir 1 trabajo por defecto
-    window.agregarSubtrabajo();
+    const jobActual = allOpJobs.find(j => j.jobId === jobId);
+
+    // Buscar tickets para agrupar (mismo cliente, estado en sitio/retrasado)
+    const agrupables = allOpJobs.filter(j => 
+        j.jobId !== jobId && 
+        j.clienteId === jobActual?.clienteId && 
+        (j.estado === 'en_sitio' || j.estado === 'retrasado')
+    );
+
+    const contAgrupar = document.getElementById('opAgruparTicketsContainer');
+    const listaAgrupar = document.getElementById('opListaTicketsAgrupar');
+
+    // Añadir el trabajo actual por defecto prellenado
+    window.agregarSubtrabajo({
+        idPropio: jobActual?.maquinaIdPropio || '',
+        modelo: jobActual?.maquinaModelo || '',
+        serial: jobActual?.maquinaSerial || ''
+    });
+
+    if (agrupables.length > 0) {
+        contAgrupar.style.display = 'block';
+        listaAgrupar.innerHTML = agrupables.map(t => `
+            <label style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #bae6fd;">
+                <input type="checkbox" class="op-agrupar-chk" value="${t.jobId}" data-idpropio="${escapeHtml(t.maquinaIdPropio || '')}" data-modelo="${escapeHtml(t.maquinaModelo || '')}" data-serial="${escapeHtml(t.maquinaSerial || '')}" onchange="manejarCheckAgrupacion(this)">
+                <div style="font-size: 13px; color: #0369a1; font-weight: 600;">
+                    ${t.maquinaIdPropio ? `[${escapeHtml(t.maquinaIdPropio)}] ` : ''}${escapeHtml(t.maquinaModelo || t.categoria || 'Ticket General')}
+                </div>
+            </label>
+        `).join('');
+    } else {
+        contAgrupar.style.display = 'none';
+        listaAgrupar.innerHTML = '';
+    }
 
     document.getElementById('modal-reporte-tecnico').classList.remove('oculto');
+};
+
+window.manejarCheckAgrupacion = (chk) => {
+    if (chk.checked) {
+        window.agregarSubtrabajo({
+            idPropio: chk.dataset.idpropio,
+            modelo: chk.dataset.modelo,
+            serial: chk.dataset.serial
+        });
+        showToast("Reporte subtrabajo añadido para la máquina seleccionada.", "success");
+    }
 };
 
 window.enviarReporteTecnico = async () => {
@@ -285,14 +327,16 @@ window.enviarReporteTecnico = async () => {
         const marca = document.getElementById(`stMarca-${id}`)?.value.trim() || '';
         const modelo = document.getElementById(`stModelo-${id}`)?.value.trim() || '';
         const contador = document.getElementById(`stCont-${id}`)?.value.trim() || '';
+        const idPropio = document.getElementById(`stIdPropio-${id}`)?.value.trim() || '';
+        const serial = document.getElementById(`stSerial-${id}`)?.value.trim() || '';
         
-        let trabajo = { tipo, marca, modelo, contador };
+        let trabajo = { tipo, marca, modelo, contador, idPropio, serial };
         
         if (tipo === 'Mantenimiento') {
             const diagnostico = document.getElementById(`stDiag-${id}`)?.value.trim() || '';
             const solucion = document.getElementById(`stSol-${id}`)?.value.trim() || '';
             const insumos = document.getElementById(`stInsumos-${id}`)?.value.trim() || '';
-            if (marca || diagnostico || solucion) {
+            if (marca || modelo || diagnostico || solucion) {
                 trabajo = { ...trabajo, diagnostico, solucion, insumos };
                 trabajosReportados.push(trabajo);
             }
@@ -300,7 +344,7 @@ window.enviarReporteTecnico = async () => {
             const descripcion = document.getElementById(`stVentaDesc-${id}`)?.value.trim() || '';
             const valor = parseFloat(document.getElementById(`stVentaValor-${id}`)?.value.trim()) || 0;
             const garantia = document.getElementById(`stVentaGarantia-${id}`)?.value.trim() || '';
-            if (marca || descripcion || valor) {
+            if (marca || modelo || descripcion || valor) {
                 trabajo = { ...trabajo, descripcion, valor, garantia };
                 trabajosReportados.push(trabajo);
             }
@@ -308,7 +352,7 @@ window.enviarReporteTecnico = async () => {
             const condiciones = document.getElementById(`stAlqCond-${id}`)?.value.trim() || '';
             const duracion = parseInt(document.getElementById(`stAlqDuracion-${id}`)?.value.trim()) || 0;
             const valor = parseFloat(document.getElementById(`stAlqValor-${id}`)?.value.trim()) || 0;
-            if (marca || condiciones || valor) {
+            if (marca || modelo || condiciones || valor) {
                 trabajo = { ...trabajo, condiciones, duracion, valorMensual: valor };
                 trabajosReportados.push(trabajo);
             }
@@ -335,13 +379,21 @@ window.enviarReporteTecnico = async () => {
     btn.disabled = true;
 
     try {
-        await updateDoc(doc(db, "trabajos", jobId), {
+        const batchJobs = [jobId];
+        document.querySelectorAll('.op-agrupar-chk:checked').forEach(chk => {
+            batchJobs.push(chk.value);
+        });
+
+        const promises = batchJobs.map(ticketId => updateDoc(doc(db, "trabajos", ticketId), {
             estado: 'revision_cliente',
             reporteTecnico: reporteTecnico,
             tiempoCompletado: serverTimestamp()
-        });
+        }));
+
+        await Promise.all(promises);
+
         document.getElementById('modal-reporte-tecnico').classList.add('oculto');
-        showToast("Reporte finalizado y enviado al cliente con éxito.", "success");
+        showToast(`Reporte guardado exitosamente en ${batchJobs.length} ticket(s).`, "success");
     } catch (e) {
         showToast("Error: " + e.message, "error");
     } finally {

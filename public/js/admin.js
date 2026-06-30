@@ -17,6 +17,12 @@ let hayMasEquipo = false;
 let modoConsultaActivo = 'todos'; // 'todos' | 'estado:X' | 'busqueda:X'
 let unsubDashboard = null;
 
+// ─── ESTADO TEMPORAL DE MÁQUINAS (modal nuevo cliente) ───────────────────────
+let maquinasTemp = [];
+let maqLatTemp = null;
+let maqLngTemp = null;
+let _maqMapaLeaflet = null;
+
 // ─── HELPER XSS ─────────────────────────────────────────────────────────────
 function escapeHtml(str) {
     if (str == null) return '';
@@ -509,25 +515,30 @@ export const verDetalleTrabajo = (id) => {
 
         // Nueva Lógica Retrocompatible
         if (rep.trabajosReportados && rep.trabajosReportados.length > 0) {
-            rep.trabajosReportados.forEach((t, i) => {
+            rep.trabajosReportados.forEach((trabajo, i) => {
                 html += `<div style="margin-top: 12px; background: white; border-left: 3px solid var(--primary); padding: 8px; border-radius: 4px;">`;
-                html += `<div style="font-weight: 800; font-size: 13px; color: var(--primary); margin-bottom: 4px;">${i + 1}. Trabajo de ${escapeHtml(t.tipo)}</div>`;
-                if (t.marca || t.modelo) {
-                    html += `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Equipo:</strong> ${escapeHtml(t.marca)} ${escapeHtml(t.modelo)} ${t.contador ? '(Contador: ' + escapeHtml(t.contador) + ')' : ''}</div>`;
+                html += `<div style="font-weight: 800; font-size: 13px; color: var(--primary); margin-bottom: 4px;">${i + 1}. Trabajo de ${escapeHtml(trabajo.tipo)}</div>`;
+                if (trabajo.marca || trabajo.modelo || trabajo.idPropio || trabajo.serial) {
+                    html += `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Equipo:</strong> `;
+                    if (trabajo.idPropio) html += `[${escapeHtml(trabajo.idPropio)}] `;
+                    html += `${escapeHtml(trabajo.marca)} ${escapeHtml(trabajo.modelo)} `;
+                    if (trabajo.serial) html += `(SN: ${escapeHtml(trabajo.serial)}) `;
+                    if (trabajo.contador) html += `(Contador: ${escapeHtml(trabajo.contador)})`;
+                    html += `</div>`;
                 }
 
-                if (t.tipo === 'Mantenimiento') {
-                    if (t.diagnostico) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Diagnóstico:</strong> ${escapeHtml(t.diagnostico)}</div>`;
-                    if (t.solucion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Solución:</strong> ${escapeHtml(t.solucion)}</div>`;
-                    if (t.insumos) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Insumos:</strong> ${escapeHtml(t.insumos)}</div>`;
-                } else if (t.tipo === 'Venta') {
-                    if (t.descripcion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Detalle Venta:</strong> ${escapeHtml(t.descripcion)}</div>`;
-                    if (t.valor) html += `<div style="font-size: 12px; margin-top: 4px; color: #16a34a; font-weight: bold;"><strong>Valor Venta:</strong> $${escapeHtml(t.valor)}</div>`;
-                    if (t.garantia) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Garantía:</strong> ${escapeHtml(t.garantia)}</div>`;
-                } else if (t.tipo === 'Alquiler') {
-                    if (t.condiciones) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Condiciones:</strong> ${escapeHtml(t.condiciones)}</div>`;
-                    if (t.duracion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Duración:</strong> ${escapeHtml(t.duracion)} meses</div>`;
-                    if (t.valorMensual) html += `<div style="font-size: 12px; margin-top: 4px; color: #0284c7; font-weight: bold;"><strong>Canon Mensual:</strong> $${escapeHtml(t.valorMensual)}</div>`;
+                if (trabajo.tipo === 'Mantenimiento') {
+                    if (trabajo.diagnostico) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Diagnóstico:</strong> ${escapeHtml(trabajo.diagnostico)}</div>`;
+                    if (trabajo.solucion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Solución:</strong> ${escapeHtml(trabajo.solucion)}</div>`;
+                    if (trabajo.insumos) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Insumos:</strong> ${escapeHtml(trabajo.insumos)}</div>`;
+                } else if (trabajo.tipo === 'Venta') {
+                    if (trabajo.descripcion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Detalle Venta:</strong> ${escapeHtml(trabajo.descripcion)}</div>`;
+                    if (trabajo.valor) html += `<div style="font-size: 12px; margin-top: 4px; color: #16a34a; font-weight: bold;"><strong>Valor Venta:</strong> $${escapeHtml(trabajo.valor)}</div>`;
+                    if (trabajo.garantia) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Garantía:</strong> ${escapeHtml(trabajo.garantia)}</div>`;
+                } else if (trabajo.tipo === 'Alquiler') {
+                    if (trabajo.condiciones) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Condiciones:</strong> ${escapeHtml(trabajo.condiciones)}</div>`;
+                    if (trabajo.duracion) html += `<div style="font-size: 12px; margin-top: 4px;"><strong>Duración:</strong> ${escapeHtml(trabajo.duracion)} meses</div>`;
+                    if (trabajo.valorMensual) html += `<div style="font-size: 12px; margin-top: 4px; color: #0284c7; font-weight: bold;"><strong>Canon Mensual:</strong> $${escapeHtml(trabajo.valorMensual)}</div>`;
                 }
                 html += `</div>`;
             });
@@ -680,6 +691,50 @@ window.abrirModalNuevoPedido = (id) => {
     } else {
         setTimeout(() => adminCrearMap.invalidateSize(), 300);
     }
+
+    // Renderizar máquinas del cliente
+    const container = document.getElementById('padminMaquinasContainer');
+    const lista = document.getElementById('padminListaMaquinas');
+    
+    if (clientData && Array.isArray(clientData.maquinas) && clientData.maquinas.length > 0) {
+        container.style.display = 'block';
+        lista.innerHTML = clientData.maquinas.map((m, index) => `
+            <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                    <input type="checkbox" class="admin-maq-checkbox" data-index="${index}" onchange="toggleAdminMaqCheckbox(this, ${index})" style="margin-top: 3px; accent-color: var(--primary);">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: var(--text-main); font-size: 13px;">
+                            ${m.idPropio ? `[${escapeHtml(m.idPropio)}] ` : ''}${escapeHtml(m.modelo || 'Sin modelo')}
+                        </div>
+                        ${m.serial ? `<div style="font-size: 11px; color: var(--text-muted);">Serie: ${escapeHtml(m.serial)}</div>` : ''}
+                        ${m.ubicacionLocal ? `<div style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-map-pin"></i> ${escapeHtml(m.ubicacionLocal)}</div>` : ''}
+                    </div>
+                    ${m.lat ? `<div style="font-size: 10px; color: #16a34a; background: #dcfce7; padding: 2px 6px; border-radius: 4px;"><i class="fas fa-map-marker-alt"></i> GPS</div>` : ''}
+                </label>
+                <textarea id="adminMaqDesc_${index}" placeholder="Describa qué problema presenta esta máquina específica..." class="input-premium" style="display: none; height: 70px; resize: vertical; width: calc(100% - 24px); margin: 0 12px 12px 12px; font-size: 13px;"></textarea>
+            </div>
+        `).join('');
+    } else {
+        container.style.display = 'none';
+        lista.innerHTML = '';
+    }
+};
+
+window.toggleAdminMaqCheckbox = (chk, index) => {
+    const txtArea = document.getElementById(`adminMaqDesc_${index}`);
+    if (chk.checked) {
+        txtArea.style.display = 'block';
+        txtArea.focus();
+    } else {
+        txtArea.style.display = 'none';
+        txtArea.value = '';
+    }
+
+    const anyChecked = document.querySelectorAll('.admin-maq-checkbox:checked').length > 0;
+    const globalDesc = document.getElementById('padminDescGlobalContainer');
+    if (globalDesc) {
+        globalDesc.style.display = anyChecked ? 'none' : 'block';
+    }
 };
 
 window.crearPedidoAdmin = async () => {
@@ -697,13 +752,87 @@ window.crearPedidoAdmin = async () => {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
     btn.disabled = true;
 
-    // Determinar si se asigna operario en este mismo paso
     const opId = opValue || null;
     const opData = opId ? cacheEquipo.find(op => op.id === opId) : null;
     const opNombre = opData ? opData.nombre : null;
     const estaAsignado = !!opId;
-
     const dirTexto = document.getElementById('padminDirTexto').value.trim();
+
+    // Comprobar checkboxes
+    const checkboxes = document.querySelectorAll('.admin-maq-checkbox:checked');
+    const clientData = cacheClientes.find(c => c.id === clientId);
+
+    if (checkboxes.length > 0 && clientData) {
+        // FLUJO LOTE (Múltiples Máquinas)
+        let todasTienenDesc = true;
+        for (let chk of checkboxes) {
+            const index = chk.dataset.index;
+            const descMaq = document.getElementById(`adminMaqDesc_${index}`).value.trim();
+            if (!descMaq) { todasTienenDesc = false; break; }
+        }
+
+        if (!todasTienenDesc) {
+            btn.innerHTML = original;
+            btn.disabled = false;
+            return showToast("Debes describir el problema para cada máquina seleccionada.", "error");
+        }
+
+        try {
+            const promesasLote = [];
+            for (let chk of checkboxes) {
+                const index = chk.dataset.index;
+                const m = clientData.maquinas[parseInt(index)];
+                if (!m) continue; // Guard: índice inválido o datos desactualizados
+                const descMaq = document.getElementById(`adminMaqDesc_${index}`)?.value.trim();
+                if (!descMaq) continue;
+                
+                const descripcionTicket = `${m.idPropio ? `[${m.idPropio}] ` : ''}${m.modelo}:\n${descMaq}`;
+                const direccionBase = [m.ubicacionLocal, m.direccion, m.barrio, m.ciudad].filter(Boolean).join(', ');
+
+                // Fallback a mapa manual si no hay GPS de la maq
+                let mLat = m.lat || 10.3910;
+                let mLng = m.lng || -75.4794;
+                if (!m.lat && adminCrearMap) {
+                    const center = adminCrearMap.getCenter();
+                    mLat = center.lat;
+                    mLng = center.lng;
+                }
+
+                promesasLote.push(addDoc(collection(db, "trabajos"), {
+                    clienteId: clientId,
+                    clienteNombre: clientName,
+                    categoria: servicio,
+                    servicio: servicio,
+                    descripcion: descripcionTicket,
+                    direccionText: direccionBase || dirTexto,
+                    lat: mLat,
+                    lng: mLng,
+                    urgencia: urgency,
+                    estado: estaAsignado ? 'asignado' : 'solicitado',
+                    operarioId: opId || null,
+                    operarioNombre: opNombre || null,
+                    maquinaIdPropio: m.idPropio || null,
+                    maquinaModelo: m.modelo || null,
+                    maquinaSerial: m.serial || null,
+                    creadoEn: serverTimestamp(),
+                    creadoPor: 'Administrador'
+                }));
+            }
+            await Promise.all(promesasLote);
+            showToast(`¡Tickets generados para ${checkboxes.length} máquinas!`, "success");
+            document.getElementById('modal-nuevo-pedido-admin').classList.add('oculto');
+        } catch (e) {
+            console.error(e);
+            showToast("Error al crear pedidos múltiples.", "error");
+        } finally {
+            btn.innerHTML = original;
+            btn.disabled = false;
+        }
+        return;
+    }
+
+    // FLUJO NORMAL (1 Ticket General)
+
     let lat = 10.3910, lng = -75.4794;
     if (adminCrearMap) {
         const center = adminCrearMap.getCenter();
@@ -792,6 +921,35 @@ export const verDetalleUsuario = (uid, rol) => {
                 <span>${user.direccion || 'No registrada'}</span>
             </div>
         `;
+
+        // Máquinas registradas del cliente
+        const maqsArr = Array.isArray(user.maquinas) ? user.maquinas : [];
+        if (maqsArr.length > 0) {
+            html += `<div style="background: var(--bg-app); padding: 15px; border-radius: 12px;">
+                <small style="color: var(--text-muted); display: block; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; font-size: 11px;">
+                    <i class="fas fa-print" style="color: var(--secondary);"></i> Máquinas Registradas (${maqsArr.length})
+                </small>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${maqsArr.map((m) => `
+                        <div style="background: white; border: 1px solid var(--border); border-left: 3px solid var(--secondary); border-radius: 8px; padding: 10px;">
+                            <div style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 4px;">
+                                <i class="fas fa-print" style="color: var(--secondary);"></i> ${m.idPropio ? `[${escapeHtml(m.idPropio)}] ` : ''}${escapeHtml(m.modelo || 'Sin modelo')}
+                            </div>
+                            ${m.serial ? `<div style="font-size: 11px; color: var(--text-muted);">Serie: ${escapeHtml(m.serial)}</div>` : ''}
+                            ${m.ubicacionLocal ? `<div style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-map-pin"></i> ${escapeHtml(m.ubicacionLocal)}</div>` : ''}
+                            ${(m.ciudad || m.barrio || m.direccion) ? `<div style="font-size: 11px; color: var(--text-muted);">${[m.ciudad, m.barrio, m.direccion].filter(Boolean).map(v => escapeHtml(v)).join(', ')}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+        } else {
+            html += `<div style="background: var(--bg-app); padding: 15px; border-radius: 12px;">
+                <small style="color: var(--text-muted); display: block; margin-bottom: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase;">
+                    <i class="fas fa-print" style="color: var(--secondary);"></i> Máquinas Registradas
+                </small>
+                <span style="color: var(--text-muted); font-size: 13px;">Sin máquinas registradas</span>
+            </div>`;
+        }
     }
 
     html += `</div>`;
@@ -1023,6 +1181,170 @@ export const crearOperario = async () => {
     finally { btn.innerHTML = originalText; }
 };
 
+// ─── CONTROL DE MÁQUINAS (MODAL REGISTRO CLIENTES) ───────────────────────────
+
+export const toggleFormMaquina = () => {
+    const form = document.getElementById('formMaquinaInline');
+    const btn = document.getElementById('btnToggleFormMaquina');
+    if (!form) return;
+
+    const isVisible = form.style.display === 'block';
+    if (isVisible) {
+        _cerrarFormMaquina();
+    } else {
+        form.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fas fa-minus"></i> Ocultar Formulario';
+    }
+};
+
+const _cerrarFormMaquina = () => {
+    const form = document.getElementById('formMaquinaInline');
+    const btn = document.getElementById('btnToggleFormMaquina');
+    if (form) form.style.display = 'none';
+    if (btn) btn.innerHTML = '<i class="fas fa-plus"></i> Agregar Máquina';
+    // Reset GPS temporal
+    maqLatTemp = null;
+    maqLngTemp = null;
+    const gpsInd = document.getElementById('maqGpsIndicator');
+    if (gpsInd) gpsInd.innerHTML = '<i class="fas fa-map-marker-alt" style="opacity: 0.4;"></i> Sin coordenadas GPS';
+    limpiarFormMaquina();
+};
+
+export const abrirMapaMaquina = () => {
+    document.getElementById('modal-mapa-maquina').classList.remove('oculto');
+
+    // Inicializar mapa la primera vez o reusar
+    if (!_maqMapaLeaflet) {
+        // Si hay coords guardadas temporalmente, centrar en ellas; si no, usar Cartagena
+        const lat = maqLatTemp || 10.3910;
+        const lng = maqLngTemp || -75.4794;
+        _maqMapaLeaflet = L.map('mapaMaquinaView').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(_maqMapaLeaflet);
+
+        // Intentar geolocalizar si no hay coords previas
+        if (!maqLatTemp && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => _maqMapaLeaflet.setView([pos.coords.latitude, pos.coords.longitude], 15),
+                () => {} // Silenciar error de geolocalización
+            );
+        }
+    } else {
+        // Reutilizar mapa existente, centrar si hay coords
+        if (maqLatTemp && maqLngTemp) {
+            _maqMapaLeaflet.setView([maqLatTemp, maqLngTemp], 15);
+        }
+    }
+
+    setTimeout(() => _maqMapaLeaflet.invalidateSize(), 300);
+};
+
+export const confirmarUbicacionMaquina = () => {
+    if (!_maqMapaLeaflet) return;
+    const center = _maqMapaLeaflet.getCenter();
+    maqLatTemp = center.lat;
+    maqLngTemp = center.lng;
+
+    // Actualizar indicador GPS en el formulario
+    const gpsInd = document.getElementById('maqGpsIndicator');
+    if (gpsInd) {
+        gpsInd.innerHTML = `<i class="fas fa-map-marker-alt" style="color: #22c55e;"></i> <strong style="color: #22c55e;">GPS confirmado</strong> <span style="opacity:0.7;">(${maqLatTemp.toFixed(5)}, ${maqLngTemp.toFixed(5)})</span>`;
+    }
+
+    document.getElementById('modal-mapa-maquina').classList.add('oculto');
+    showToast('Ubicación GPS de la máquina confirmada.', 'success');
+};
+
+const limpiarFormMaquina = () => {
+    const inputs = ['maqIdPropio', 'maqModelo', 'maqSerial', 'maqCiudad', 'maqBarrio', 'maqDireccion', 'maqUbicacionLocal'];
+    inputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+    });
+};
+
+export const agregarMaquina = () => {
+    const idPropio = document.getElementById('maqIdPropio').value.trim();
+    const modelo = document.getElementById('maqModelo').value.trim();
+    const serial = document.getElementById('maqSerial').value.trim();
+    const ciudad = document.getElementById('maqCiudad').value.trim();
+    const barrio = document.getElementById('maqBarrio').value.trim();
+    const direccion = document.getElementById('maqDireccion').value.trim();
+    const ubicacionLocal = document.getElementById('maqUbicacionLocal').value.trim();
+
+    if (!modelo) {
+        return showToast("El modelo de la máquina es obligatorio.", "error");
+    }
+
+    const nueva = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+        idPropio,
+        modelo,
+        serial,
+        ciudad,
+        barrio,
+        direccion,
+        ubicacionLocal,
+        lat: maqLatTemp || null,
+        lng: maqLngTemp || null
+    };
+
+    maquinasTemp.push(nueva);
+    renderMaquinasAdmin();
+    _cerrarFormMaquina(); // Siempre cierra directamente, sin depender del estado del toggle
+    showToast("Máquina añadida.", "success");
+};
+
+export const eliminarMaquina = (id) => {
+    maquinasTemp = maquinasTemp.filter(m => m.id !== id);
+    renderMaquinasAdmin();
+    showToast("Máquina removida.", "warning");
+};
+
+export const renderMaquinasAdmin = () => {
+    const lista = document.getElementById('listaMaquinasAdmin');
+    if (!lista) return;
+
+    if (maquinasTemp.length === 0) {
+        lista.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border); border-radius: 10px;" id="maquinasEmptyState">
+                <i class="fas fa-print" style="font-size: 24px; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
+                Sin máquinas registradas aún
+            </div>`;
+        return;
+    }
+
+    lista.innerHTML = maquinasTemp.map((m) => `
+        <div style="background: white; border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: start; gap: 12px; border-left: 3px solid ${m.lat ? '#22c55e' : 'var(--secondary)'}; margin-bottom: 6px;">
+            <div style="flex: 1;">
+                <div style="font-weight: 700; color: var(--text-main); font-size: 14px; margin-bottom: 4px;">
+                    <i class="fas fa-print" style="color: var(--secondary); margin-right: 6px;"></i>
+                    ${m.idPropio ? `[${escapeHtml(m.idPropio)}] ` : ''}${escapeHtml(m.modelo)}
+                </div>
+                ${m.serial ? `<div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;"><i class="fas fa-barcode" style="width: 14px;"></i> Serie: <strong>${escapeHtml(m.serial)}</strong></div>` : ''}
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
+                    ${m.lat ? `<span style="font-size: 11px; background: #dcfce7; padding: 3px 8px; border-radius: 6px; color: #16a34a;"><i class="fas fa-map-marker-alt"></i> GPS ✓</span>` : ''}
+                    ${m.ubicacionLocal ? `<span style="font-size: 11px; background: var(--bg-app); padding: 3px 8px; border-radius: 6px; color: var(--text-main);"><i class="fas fa-map-pin" style="color: var(--secondary);"></i> ${escapeHtml(m.ubicacionLocal)}</span>` : ''}
+                    ${m.ciudad ? `<span style="font-size: 11px; background: var(--bg-app); padding: 3px 8px; border-radius: 6px; color: var(--text-muted);"><i class="fas fa-city"></i> ${escapeHtml(m.ciudad)}</span>` : ''}
+                    ${m.barrio ? `<span style="font-size: 11px; background: var(--bg-app); padding: 3px 8px; border-radius: 6px; color: var(--text-muted);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(m.barrio)}</span>` : ''}
+                    ${m.direccion ? `<span style="font-size: 11px; background: var(--bg-app); padding: 3px 8px; border-radius: 6px; color: var(--text-muted);">${escapeHtml(m.direccion)}</span>` : ''}
+                </div>
+            </div>
+            <button type="button" onclick="eliminarMaquina('${m.id}')" title="Eliminar máquina" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; font-size: 16px; flex-shrink: 0;">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    `).join('');
+};
+
+export const cerrarModalNuevoCliente = () => {
+    maquinasTemp = [];
+    _cerrarFormMaquina(); // Limpia inputs + oculta form + resetea botón
+    renderMaquinasAdmin(); // Reinicia lista al estado vacío
+    document.getElementById('modal-nuevo-cliente').classList.add('oculto');
+};
+
 export const crearClienteAdmin = async () => {
     const fn = httpsCallable(functions, 'crearCliente');
     const btn = document.getElementById('btnCrearCliAdmin');
@@ -1078,6 +1400,7 @@ export const crearClienteAdmin = async () => {
     if (!nombre || !email || !password) return showToast("Nombre/Razón Social, Email y Contraseña requeridos", "error");
 
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
+    btn.disabled = true;
     try {
         const payload = {
             nombre, email, password,
@@ -1087,12 +1410,13 @@ export const crearClienteAdmin = async () => {
             ciudad, barrio, direccionDetallada, direccion: direccionLegacy, // legacy
             tipoRelacion,
             equiposAlquilados, valorMensual, copiasFavor, valorCopiaExtra, estadoCuenta,
+            maquinas: maquinasTemp.map(({ id, ...rest }) => rest), // Omitimos el id local
             activo: true
         };
 
         const result = await fn(payload);
         showToast("Cliente registrado", "success");
-        document.getElementById('modal-nuevo-cliente').classList.add('oculto');
+        cerrarModalNuevoCliente();
 
         cacheClientes.push({
             id: result.data.uid,
@@ -1105,7 +1429,10 @@ export const crearClienteAdmin = async () => {
         console.error("Error al crear cliente:", e);
         showToast("Error: " + (e.message || "Falla en el servidor"), "error");
     }
-    finally { btn.innerHTML = originalText; }
+    finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 };
 
 // --- MÓDULO MAPAS LEAFLET ---
@@ -1228,3 +1555,9 @@ window.abrirMapaAdmin = abrirMapaAdmin;
 window.guardarUbicacionMapa = guardarUbicacionMapa;
 window.cerrarYFacturarJob = cerrarYFacturarJob;
 window.marcarCompletado = marcarCompletado;
+window.toggleFormMaquina = toggleFormMaquina;
+window.agregarMaquina = agregarMaquina;
+window.eliminarMaquina = eliminarMaquina;
+window.cerrarModalNuevoCliente = cerrarModalNuevoCliente;
+window.abrirMapaMaquina = abrirMapaMaquina;
+window.confirmarUbicacionMaquina = confirmarUbicacionMaquina;

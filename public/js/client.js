@@ -18,6 +18,8 @@ let currentRating = 5;
 export const escucharMisPedidos = (userId) => {
     if (unsubCliente) { unsubCliente(); unsubCliente = null; }
 
+    renderMaquinasCliente();
+
     unsubCliente = onSnapshot(
         query(
             collection(db, "trabajos"),
@@ -94,26 +96,156 @@ export const escucharMisPedidos = (userId) => {
     );
 };
 
-window.abrirMapaCliente = () => {
+window.toggleMaqCheckbox = (chk, index) => {
+    const txtArea = document.getElementById(`maqDesc_${index}`);
+    if (chk.checked) {
+        txtArea.style.display = 'block';
+        txtArea.focus();
+    } else {
+        txtArea.style.display = 'none';
+        txtArea.value = '';
+    }
+
+    // Ocultar/Mostrar la descripcion global dependiendo de si hay alguna seleccionada
+    const anyChecked = document.querySelectorAll('.maq-checkbox:checked').length > 0;
+    const globalDesc = document.getElementById('cliDescGlobalContainer');
+    if (globalDesc) {
+        globalDesc.style.display = anyChecked ? 'none' : 'block';
+    }
+};
+
+const renderMaquinasCliente = () => {
+    const container = document.getElementById('cliMaquinasContainer');
+    const lista = document.getElementById('cliListaMaquinas');
+    if (!container || !lista) return;
+
+    if (!userData || !Array.isArray(userData.maquinas) || userData.maquinas.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    // Remove padding inside lista to let the inner divs span full width
+    lista.style.padding = '0';
+    lista.style.background = 'transparent';
+    lista.style.border = 'none';
+
+    lista.innerHTML = userData.maquinas.map((m, index) => `
+        <div style="background: var(--bg-app); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 12px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="maq-checkbox" data-index="${index}" onchange="toggleMaqCheckbox(this, ${index})" style="margin-top: 3px; accent-color: var(--primary);">
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; color: var(--text-main); font-size: 13px;">
+                        ${m.idPropio ? `[${escapeHtml(m.idPropio)}] ` : ''}${escapeHtml(m.modelo || 'Sin modelo')}
+                    </div>
+                    ${m.serial ? `<div style="font-size: 11px; color: var(--text-muted);">Serie: ${escapeHtml(m.serial)}</div>` : ''}
+                    ${m.ubicacionLocal ? `<div style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-map-pin"></i> ${escapeHtml(m.ubicacionLocal)}</div>` : ''}
+                </div>
+                ${m.lat ? `<div style="font-size: 10px; color: #16a34a; background: #dcfce7; padding: 2px 6px; border-radius: 4px;"><i class="fas fa-map-marker-alt"></i> GPS</div>` : ''}
+            </label>
+            <textarea id="maqDesc_${index}" placeholder="Describa qué problema presenta esta máquina específica..." class="input-premium" style="display: none; height: 70px; resize: vertical; width: calc(100% - 24px); margin: 0 12px 12px 12px; font-size: 13px;"></textarea>
+        </div>
+    `).join('');
+};
+
+window.abrirMapaCliente = async () => {
     const cat = document.getElementById('cliServicio').value;
+    if (!cat) return showToast("Por favor selecciona una categoría (Área Técnica).", "error");
+
+    const checkboxes = document.querySelectorAll('.maq-checkbox:checked');
+    
+    // FLUJO 1: MÚLTIPLES MÁQUINAS SELECCIONADAS (SE ENVÍAN INDIVIDUALMENTE)
+    if (checkboxes.length > 0) {
+        if (!userData) return showToast("Sesión no válida.", "error");
+
+        let todasTienenDesc = true;
+        const promesasLote = [];
+        const btn = document.querySelector('button[onclick="abrirMapaCliente()"]');
+        if (!btn) return showToast("Error de interfaz. Recarga la página.", "error");
+        const origText = btn.innerHTML;
+
+        for (let chk of checkboxes) {
+            const index = chk.dataset.index;
+            const descMaq = document.getElementById(`maqDesc_${index}`).value.trim();
+            if (!descMaq) {
+                todasTienenDesc = false;
+                break;
+            }
+        }
+
+        if (!todasTienenDesc) {
+            return showToast("Debes escribir la descripción del problema para cada máquina seleccionada.", "error");
+        }
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ENVIANDO SOLICITUDES...';
+        btn.disabled = true;
+
+        try {
+            for (let chk of checkboxes) {
+                const index = chk.dataset.index;
+                const m = userData.maquinas[parseInt(index)];
+                if (!m) continue; // Guard: índice desactualizado
+                const descMaq = document.getElementById(`maqDesc_${index}`).value.trim();
+                
+                const pinArr = new Uint32Array(1);
+                crypto.getRandomValues(pinArr);
+                const pinCode = (1000 + (pinArr[0] % 9000)).toString();
+
+                const descripcionTicket = `${m.idPropio ? `[${m.idPropio}] ` : ''}${m.modelo}:\n${descMaq}`;
+                const direccionBase = [m.ubicacionLocal, m.direccion, m.barrio, m.ciudad].filter(Boolean).join(', ');
+
+                promesasLote.push(addDoc(collection(db, "trabajos"), {
+                    clienteId: userData.uid,
+                    clienteNombre: userData.nombre,
+                    categoria: cat,
+                    descripcion: descripcionTicket,
+                    direccionText: direccionBase || userData.direccion || '',
+                    lat: m.lat || null,
+                    lng: m.lng || null,
+                    maquinaIdPropio: m.idPropio || null,
+                    maquinaModelo: m.modelo || null,
+                    maquinaSerial: m.serial || null,
+                    pinCode: pinCode,
+                    estado: 'solicitado',
+                    creadoEn: serverTimestamp()
+                }));
+            }
+            
+            await Promise.all(promesasLote);
+            
+            document.getElementById('cliServicio').value = '';
+            const allChk = document.querySelectorAll('.maq-checkbox');
+            allChk.forEach(c => {
+                c.checked = false;
+                toggleMaqCheckbox(c, c.dataset.index);
+            });
+            showToast(`🚀 ¡Se han enviado ${checkboxes.length} requerimientos al despacho!`, "success");
+
+        } catch (e) {
+            showToast("Error enviando los tickets: " + e.message, "error");
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+        }
+
+        return; // Detenemos ejecución, no abrimos mapa manual
+    }
+
+    // FLUJO 2: NO HAY MÁQUINAS SELECCIONADAS (FLUJO GENERAL DE TICKET ÚNICO)
     const desc = document.getElementById('cliDesc').value.trim();
-    if (!cat || !desc) return showToast("Por favor selecciona una categoría y detalla el problema antes de elegir la ubicación.", "error");
+    if (!desc) return showToast("Por favor detalla el problema en la Descripción General.", "error");
 
     document.getElementById('cliDirTexto').value = '';
     document.getElementById('modal-mapa-cliente').classList.remove('oculto');
 
-    // Initialize map if not yet done
     if (!currentClientMap) {
-        currentClientMap = L.map('mapaClienteView').setView([10.3910, -75.4794], 13); // Default Cartagena
+        currentClientMap = L.map('mapaClienteView').setView([10.3910, -75.4794], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(currentClientMap);
 
-        // Try getting real location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    currentClientMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
-                },
-                (err) => console.log('Location not granted or error')
+                (pos) => currentClientMap.setView([pos.coords.latitude, pos.coords.longitude], 15),
+                (err) => console.log('Location not granted')
             );
         }
     }
@@ -130,6 +262,8 @@ window.confirmarUbicacionCliente = async () => {
     const desc = document.getElementById('cliDesc').value.trim();
     const dirTexto = document.getElementById('cliDirTexto').value.trim();
 
+    if (!cat || !desc) return showToast("La categoría y descripción son obligatorias.", "error");
+
     if (!userData) return showToast("Sesión no válida. Por favor recarga la página.", "error");
 
     const btn = document.getElementById('btnConfirmarUbiCli');
@@ -137,7 +271,6 @@ window.confirmarUbicacionCliente = async () => {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ENVIANDO...';
     btn.disabled = true;
 
-    // Generate cryptographically secure 4-digit PIN
     const pinArr = new Uint32Array(1);
     crypto.getRandomValues(pinArr);
     const pinCode = (1000 + (pinArr[0] % 9000)).toString();
@@ -174,7 +307,8 @@ window.abrirVistoBueno = (jobId) => {
 
     currentVbJobId = jobId;
     currentRating = 5;
-    document.getElementById('vbComentario').value = '';
+    const vbComentario = document.getElementById('vbComentario');
+    if (vbComentario) vbComentario.value = '';
 
     const isEvaluated = job.evaluacionCliente != null || job.estado !== 'revision_cliente';
     if (isEvaluated) {
@@ -210,8 +344,13 @@ window.abrirVistoBueno = (jobId) => {
         rep.trabajosReportados.forEach((t, i) => {
             html += `<div style="margin-top: 12px; background: white; border-left: 3px solid var(--primary); padding: 8px; border-radius: 4px;">`;
             html += `<div style="font-weight: 800; font-size: 13px; color: var(--primary); margin-bottom: 4px;">${i + 1}. Trabajo de ${escapeHtml(t.tipo)}</div>`;
-            if (t.marca || t.modelo) {
-                html += `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Equipo:</strong> ${escapeHtml(t.marca)} ${escapeHtml(t.modelo)} ${t.contador ? '(Contador: ' + escapeHtml(t.contador) + ')' : ''}</div>`;
+            if (t.marca || t.modelo || t.idPropio || t.serial) {
+                html += `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><strong>Equipo:</strong> `;
+                if (t.idPropio) html += `[${escapeHtml(t.idPropio)}] `;
+                html += `${escapeHtml(t.marca)} ${escapeHtml(t.modelo)} `;
+                if (t.serial) html += `(SN: ${escapeHtml(t.serial)}) `;
+                if (t.contador) html += `(Contador: ${escapeHtml(t.contador)})`;
+                html += `</div>`;
             }
 
             if (t.tipo === 'Mantenimiento') {
